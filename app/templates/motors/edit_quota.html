@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل حصة الساعات: {{ quota.operator_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- رأس الصفحة -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('motors.operator_quotas', year=quota.year) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <h1 class="h3 mb-0 ms-3">
+                    <i class="fas fa-edit text-warning"></i> تعديل حصة: {{ quota.operator_name }}
+                </h1>
+            </div>
+
+            <!-- النموذج -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="operator_name" class="form-label">اسم المشغل</label>
+                                <input type="text" class="form-control" id="operator_name" value="{{ quota.operator_name }}" readonly>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="year" class="form-label">السنة</label>
+                                <input type="text" class="form-control" id="year" value="{{ quota.year }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="allocated_hours" class="form-label">الساعات المخصصة <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="allocated_hours" name="allocated_hours" 
+                                       step="0.5" min="0" value="{{ quota.allocated_hours }}" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">الحالة</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="نشط" {% if quota.status == 'نشط' %}selected{% endif %}>نشط</option>
+                                    <option value="مجمد" {% if quota.status == 'مجمد' %}selected{% endif %}>مجمد</option>
+                                    <option value="معطل" {% if quota.status == 'معطل' %}selected{% endif %}>معطل</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ quota.notes or '' }}</textarea>
+                        </div>
+
+                        <!-- إحصائيات الاستخدام الحالية -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted mb-2">الساعات المخصصة</h6>
+                                        <h4 class="text-primary">{{ "%.2f"|format(quota.allocated_hours) }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted mb-2">الساعات المستخدمة</h6>
+                                        <h4 class="text-warning">{{ "%.2f"|format(quota.used_hours) }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted mb-2">الساعات المتبقية</h6>
+                                        <h4 class="text-info">{{ "%.2f"|format(quota.remaining_hours) }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- التقدم -->
+                        {% set percentage = (quota.used_hours / quota.allocated_hours * 100) if quota.allocated_hours > 0 else 0 %}
+                        <div class="mb-4">
+                            <label class="form-label">نسبة الاستخدام</label>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar {% if percentage >= 100 %}bg-danger{% elif percentage >= 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ [percentage, 100]|min }}%"
+                                     aria-valuenow="{{ percentage }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ "%.1f"|format(percentage) }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle"></i> آخر تحديث: {{ quota.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> حفظ التغييرات
+                            </button>
+                            <a href="{{ url_for('motors.operator_quotas', year=quota.year) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل بيع{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تعديل البيع</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="crop_id" class="form-label">الصنف</label>
+                    <select class="form-select" id="crop_id" name="crop_id" required>
+                        {% for crop in crops %}
+                        <option value="{{ crop.id }}"{% if sale.crop_id == crop.id %} selected{% endif %}>{{ crop.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="sale_date" class="form-label">تاريخ البيع</label>
+                    <input type="date" class="form-control" id="sale_date" name="sale_date" value="{{ sale.sale_date }}" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="quantity" class="form-label">الكمية</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" step="0.01" value="{{ sale.quantity }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="unit" class="form-label">الوحدة</label>
+                    <input type="text" class="form-control" id="unit" name="unit" value="{{ sale.unit }}" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="price_per_unit" class="form-label">السعر لكل وحدة</label>
+                    <input type="number" class="form-control" id="price_per_unit" name="price_per_unit" step="0.01" value="{{ sale.price_per_unit }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="payment_status" class="form-label">حالة الدفع</label>
+                    <select class="form-select" id="payment_status" name="payment_status">
+                        <option value="مدفوع"{% if sale.payment_status == 'مدفوع' %} selected{% endif %}>مدفوع</option>
+                        <option value="غير مدفوع"{% if sale.payment_status == 'غير مدفوع' %} selected{% endif %}>غير مدفوع</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="buyer_name" class="form-label">اسم المشتري</label>
+                    <input type="text" class="form-control" id="buyer_name" name="buyer_name" value="{{ sale.buyer_name or '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="buyer_phone" class="form-label">رقم المشتري</label>
+                    <input type="tel" class="form-control" id="buyer_phone" name="buyer_phone" value="{{ sale.buyer_phone or '' }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3">{{ sale.notes or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> حفظ التعديلات
+                </button>
+                <a href="{{ url_for('sales.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

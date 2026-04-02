@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}سجل الاستهلاك - {{ crop.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>
+            <i class="fas fa-flask-vial"></i> سجل الاستهلاك على الصنف
+        </h1>
+    </div>
+</div>
+
+<!-- معلومات الصنف -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-leaf"></i> معلومات الصنف
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="text-muted small d-block mb-1">📌 اسم الصنف</label>
+                <h5 class="text-success">{{ crop.name }}</h5>
+            </div>
+            <div class="col-md-3">
+                <label class="text-muted small d-block mb-1">🏷️ النوع</label>
+                <div>
+                    {% if crop.category == 'خضروات' %}
+                        <span class="badge bg-success">{{ crop.category }}</span>
+                    {% elif crop.category == 'فواكه' %}
+                        <span class="badge bg-danger">{{ crop.category }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ crop.category }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="text-muted small d-block mb-1">📍 الموقع</label>
+                <p>{{ crop.location or '—' }}</p>
+            </div>
+            <div class="col-md-3">
+                <label class="text-muted small d-block mb-1">📏 المساحة</label>
+                <p>{{ crop.area or '—' }} {{ crop.unit or '' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات الاستهلاك -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">إجمالي الاستهلاك</h5>
+                <h2 class="text-info">{{ consumptions|length }}</h2>
+                <small class="text-muted">سجل</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">إجمالي الكمية</h5>
+                <h2 class="text-warning">
+                    {% set total_quantity = consumptions|sum(attribute='quantity_used') %}
+                    {{ "%.2f"|format(total_quantity) if total_quantity else 0 }}
+                </h2>
+                <small class="text-muted">وحدة</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">آخر استهلاك</h5>
+                <h5 class="text-success">
+                    {% if consumptions %}
+                        {{ consumptions[0].consumption_date.strftime('%d-%m-%Y') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </h5>
+                <small class="text-muted">التاريخ</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <div class="btn-group btn-group-sm w-100" role="group">
+                    <a href="{{ url_for('production.add_consumption', crop_id=crop.id) }}" class="btn btn-success" title="إضافة">
+                        <i class="fas fa-plus-circle"></i> إضافة
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- سجل الاستهلاك -->
+<div class="card shadow-sm">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-list"></i> قائمة الاستهلاك
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if consumptions %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="25%">المنتج/المادة</th>
+                        <th width="15%">النوع</th>
+                        <th width="12%">الكمية</th>
+                        <th width="15%">التاريخ</th>
+                        <th width="20%">الملاحظات</th>
+                        <th width="13%">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for consumption in consumptions %}
+                    <tr>
+                        <td>
+                            <strong>{{ consumption.inventory_item.name }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ consumption.inventory_item.category }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ "%.2f"|format(consumption.quantity_used) }}</strong>
+                            <small class="text-muted">{{ consumption.inventory_item.unit }}</small>
+                        </td>
+                        <td>
+                            <small>{{ consumption.consumption_date.strftime('%d-%m-%Y') }}</small>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {{ consumption.notes[:50] if consumption.notes else '-' }}
+                                {% if consumption.notes and consumption.notes|length > 50 %}...{% endif %}
+                            </small>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('production.edit_crop_consumption', consumption_id=consumption.id) }}" class="btn btn-sm btn-warning" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if current_user.can_delete or current_user.is_admin %}
+                            <form method="POST" action="{{ url_for('production.delete_crop_consumption', consumption_id=consumption.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف السجل؟');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-danger" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detailsModal{{ consumption.id }}" title="التفاصيل">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal التفاصيل -->
+                    <div class="modal fade" id="detailsModal{{ consumption.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-info text-white">
+                                    <h5 class="modal-title">تفاصيل الاستهلاك</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <label class="text-muted small d-block">الصنف المستهلক عليه</label>
+                                            <h6>{{ crop.name }}</h6>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="text-muted small d-block">المنتج/المادة</label>
+                                            <h6>{{ consumption.inventory_item.name }}</h6>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <label class="text-muted small d-block">النوع</label>
+                                            <p>{{ consumption.inventory_item.category }}</p>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="text-muted small d-block">التاريخ</label>
+                                            <p>{{ consumption.consumption_date.strftime('%d-%m-%Y') }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="text-muted small d-block">الكمية المستهلكة</label>
+                                        <p>
+                                            <strong class="text-success">{{ "%.2f"|format(consumption.quantity_used) }} {{ consumption.inventory_item.unit }}</strong>
+                                        </p>
+                                    </div>
+                                    {% if consumption.notes %}
+                                    <div class="mb-3">
+                                        <label class="text-muted small d-block">الملاحظات</label>
+                                        <p>{{ consumption.notes }}</p>
+                                    </div>
+                                    {% endif %}
+                                    <div class="alert alert-secondary" role="alert">
+                                        <small>
+                                            <strong>تاريخ التسجيل:</strong> {{ consumption.created_at.strftime('%d-%m-%Y %H:%M') }}
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+            <p>لا توجد سجلات استهلاك لهذا الصنف حالياً</p>
+            <a href="{{ url_for('production.add_consumption', crop_id=crop.id) }}" class="btn btn-sm btn-success">
+                <i class="fas fa-plus-circle"></i> إضافة استهلاك أول
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- الأزرار -->
+<div class="mt-4">
+    <a href="{{ url_for('production.crops') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> العودة للأصناف
+    </a>
+    <a href="{{ url_for('production.add_consumption', crop_id=crop.id) }}" class="btn btn-success">
+        <i class="fas fa-plus-circle"></i> إضافة استهلاك جديد
+    </a>
+</div>
+{% endblock %}

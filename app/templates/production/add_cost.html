@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة تكلفة إنتاج{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2><i class="fas fa-plus"></i> إضافة تكلفة إنتاج</h2>
+            <hr>
+
+            <form method="POST" class="needs-validation">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="crop_id" class="form-label">الصنف <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="crop_id" name="crop_id" required>
+                                        <option value="">اختر الصنف</option>
+                                        {% for crop in crops %}
+                                        <option value="{{ crop.id }}">{{ crop.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cost_date" class="form-label">تاريخ التكلفة <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="cost_date" name="cost_date" value="{{ today }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cost_type" class="form-label">نوع التكلفة <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="cost_type" name="cost_type" required>
+                                        <option value="">اختر النوع</option>
+                                        <option value="تجهيز التربة">تجهيز التربة</option>
+                                        <option value="بذور">بذور</option>
+                                        <option value="أسمدة">أسمدة</option>
+                                        <option value="مبيدات">مبيدات</option>
+                                        <option value="عمالة">عمالة</option>
+                                        <option value="كهرباء/ماء">كهرباء/ماء</option>
+                                        <option value="معدات">معدات</option>
+                                        <option value="أخرى">أخرى</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cost_category" class="form-label">تصنيف التكلفة <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="cost_category" name="cost_category" required>
+                                        <option value="">اختر التصنيف</option>
+                                        <option value="متغيرة">متغيرة</option>
+                                        <option value="ثابتة">ثابتة</option>
+                                        <option value="نفقات عامة">نفقات عامة</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">الوصف</label>
+                                    <input type="text" class="form-control" id="description" name="description" placeholder="وصف التكلفة">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label">الكمية</label>
+                                    <input type="number" class="form-control" id="quantity" name="quantity" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="unit_cost" class="form-label">سعر الوحدة <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="unit_cost" name="unit_cost" step="0.01" placeholder="0.00" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="total_cost" class="form-label">المجموع <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="total_cost" name="total_cost" step="0.01" placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="reference_number" class="form-label">رقم الفاتورة/المرجع</label>
+                                    <input type="text" class="form-control" id="reference_number" name="reference_number">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ التكلفة
+                    </button>
+                    <a href="{{ url_for('production.production_costs') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('quantity').addEventListener('change', calculateTotal);
+document.getElementById('unit_cost').addEventListener('change', calculateTotal);
+
+function calculateTotal() {
+    const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+    const unitCost = parseFloat(document.getElementById('unit_cost').value) || 0;
+    const total = quantity * unitCost;
+    document.getElementById('total_cost').value = total.toFixed(2);
+}
+</script>
+{% endblock %}

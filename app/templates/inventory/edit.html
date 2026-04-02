@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل عنصر مخزون{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تعديل {{ item.name }}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="name" class="form-label">اسم المنتج</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ item.name }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="category" class="form-label">الفئة</label>
+                    <select class="form-select" id="category" name="category" required>
+                        <option value="أدوية"{% if item.category == 'أدوية' %} selected{% endif %}>أدوية</option>
+                        <option value="أسمدة"{% if item.category == 'أسمدة' %} selected{% endif %}>أسمدة</option>
+                        <option value="مشتقات نفطية"{% if item.category == 'مشتقات نفطية' %} selected{% endif %}>مشتقات نفطية</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="quantity" class="form-label">الكمية</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" step="0.01" value="{{ item.quantity }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="unit" class="form-label">الوحدة</label>
+                    <input type="text" class="form-control" id="unit" name="unit" value="{{ item.unit }}" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="purchase_price" class="form-label">سعر الشراء</label>
+                    <input type="number" class="form-control" id="purchase_price" name="purchase_price" step="0.01" value="{{ item.purchase_price }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="supplier" class="form-label">الموردة</label>
+                    <input type="text" class="form-control" id="supplier" name="supplier" value="{{ item.supplier or '' }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3">{{ item.notes or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> حفظ التعديلات
+                </button>
+                <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

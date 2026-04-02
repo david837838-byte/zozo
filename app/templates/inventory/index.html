@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}المخزون - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-9">
+        <h1>المخزون</h1>
+    </div>
+    <div class="col-3">
+        <a href="{{ url_for('inventory.add_item') }}" class="btn btn-primary float-end">
+            <i class="bi bi-plus-circle"></i> إضافة عنصر
+        </a>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <a href="{{ url_for('inventory.boxes') }}" class="btn btn-info">
+            <i class="bi bi-box-seam"></i> الشراحات والكراتين
+        </a>
+        <a href="{{ url_for('inventory.inventory_purchases') }}" class="btn btn-success">
+            <i class="bi bi-bag-check"></i> شراء المخزون
+        </a>
+        <a href="{{ url_for('inventory.out_of_stock') }}" class="btn btn-danger">
+            <i class="fas fa-exclamation-triangle"></i> الأدوية التي نفذت
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الاسم</th>
+                    <th>الفئة</th>
+                    <th>الكمية</th>
+                    <th>الوحدة</th>
+                    <th>السعر</th>
+                    <th>الموردة</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>
+                        {% if item.category == 'أدوية' %}
+                            <span class="badge bg-primary">أدوية</span>
+                        {% elif item.category == 'أسمدة' %}
+                            <span class="badge bg-success">أسمدة</span>
+                        {% elif item.category == 'مشتقات نفطية' %}
+                            <span class="badge bg-warning text-dark">مشتقات نفطية</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ item.category }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>{{ item.purchase_price }}</td>
+                    <td>{{ item.supplier or '-' }}</td>
+                    <td>
+                        {% if item.quantity > 0 %}
+                            <span class="badge bg-success">متاح</span>
+                        {% else %}
+                            <span class="badge bg-danger">نفذ</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{{ url_for('inventory.add_transaction', item_id=item.id) }}" class="btn btn-info" title="تسجيل حركة">
+                                <i class="bi bi-arrow-left-right"></i>
+                            </a>
+                            <a href="{{ url_for('inventory.add_inventory_purchase', item_id=item.id) }}" class="btn btn-success" title="شراء جديد">
+                                <i class="bi bi-bag-check"></i>
+                            </a>
+                            <a href="{{ url_for('inventory.edit_item', item_id=item.id) }}" class="btn btn-warning" title="تعديل">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if current_user.is_admin %}
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ item.id }}" title="حذف">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted p-4">لا توجد عناصر مخزون</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modals for Delete Confirmation -->
+{% for item in items %}
+<div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ item.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel{{ item.id }}">
+                    <i class="bi bi-exclamation-triangle"></i> تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">
+                    هل أنت متأكد من حذف <strong style="color: #dc3545;">{{ item.name }}</strong>؟
+                </p>
+                <small class="text-muted d-block mt-2">
+                    <i class="bi bi-info-circle"></i>
+                    سيتم حذف جميع السجلات المرتبطة بهذا الصنف أيضاً.
+                </small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </button>
+                <form method="POST" action="{{ url_for('inventory.delete_item', item_id=item.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> حذف نهائياً
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

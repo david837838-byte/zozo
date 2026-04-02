@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير المحركات التفصيلي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">تقرير المحركات التفصيلي</h1>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm">العودة للتقارير</a>
+</div>
+
+{% include "reports/_report_filters_exports.html" %}
+
+<div class="row mb-4">
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>المحركات</small><h5>{{ motors|length }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>نشطة</small><h5 class="text-success">{{ active_motors }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>معطلة</small><h5 class="text-danger">{{ inactive_motors }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>سجلات تشغيل</small><h5>{{ usage_count }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>ساعات التشغيل</small><h5>{{ "%.2f"|format(total_usage_hours) }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>تكلفة المحركات</small><h6>{{ "%.2f"|format(total_motor_cost) }}</h6></div></div></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">الوقود والتشغيل</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>إجمالي الوقود المضاف:</strong> {{ "%.2f"|format(total_fuel_added) }}</p>
+                <p class="mb-1"><strong>إجمالي تكلفة الوقود (سجلات التشغيل):</strong> {{ "%.2f"|format(total_fuel_cost) }}</p>
+                <p class="mb-0"><strong>عدد سجلات التكاليف:</strong> {{ cost_entries_count }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">حصص المشغلين</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>الساعات المخصصة:</strong> {{ "%.2f"|format(allocated_quota_hours) }}</p>
+                <p class="mb-1"><strong>الساعات المستخدمة:</strong> {{ "%.2f"|format(used_quota_hours) }}</p>
+                <p class="mb-0"><strong>الساعات المتبقية:</strong> {{ "%.2f"|format(remaining_quota_hours) }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">أفضل المحركات حسب ساعات التشغيل</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>المحرك</th><th>الساعات</th><th>السجلات</th></tr></thead>
+                    <tbody>
+                        {% for row in top_motors_by_hours %}
+                        <tr><td>{{ row.motor_name }}</td><td>{{ "%.2f"|format(row.hours) }}</td><td>{{ row.entries }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">أفضل المشغلين حسب الساعات</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>المشغل</th><th>الساعات</th><th>السجلات</th><th>تكلفة الوقود</th></tr></thead>
+                    <tbody>
+                        {% for row in top_operators_by_hours %}
+                        <tr><td>{{ row.operator_name }}</td><td>{{ "%.2f"|format(row.hours) }}</td><td>{{ row.entries }}</td><td>{{ "%.2f"|format(row.fuel_cost) }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">حصص المشغلين المسجلة</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>المشغل</th><th>السنة</th><th>المخصص</th><th>المستخدم</th><th>المتبقي</th><th>الحالة</th></tr></thead>
+            <tbody>
+                {% for q in quotas %}
+                <tr>
+                    <td>{{ q.operator_name }}</td>
+                    <td>{{ q.year }}</td>
+                    <td>{{ "%.2f"|format(q.allocated_hours) }}</td>
+                    <td>{{ "%.2f"|format(q.used_hours) }}</td>
+                    <td>{{ "%.2f"|format(q.remaining_hours) }}</td>
+                    <td>{{ q.status }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted">لا توجد حصص مسجلة.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">آخر سجلات التشغيل</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>التاريخ</th><th>المحرك</th><th>المشغل</th><th>الساعات</th></tr></thead>
+                    <tbody>
+                        {% for u in recent_usage %}
+                        <tr>
+                            <td>{{ u.usage_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ u.motor.name }}</td>
+                            <td>{{ u.operator_name }}</td>
+                            <td>{{ "%.2f"|format(u.total_hours or 0) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">آخر تكاليف المحركات</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>التاريخ</th><th>المحرك</th><th>النوع</th><th>الكمية</th><th>التكلفة</th></tr></thead>
+                    <tbody>
+                        {% for c in recent_costs %}
+                        <tr>
+                            <td>{{ c.cost_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ motor_lookup.get(c.motor_id, '-') }}</td>
+                            <td>{{ c.cost_type }}</td>
+                            <td>{{ "%.2f"|format(c.quantity) }}</td>
+                            <td>{{ "%.2f"|format(c.total_cost) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

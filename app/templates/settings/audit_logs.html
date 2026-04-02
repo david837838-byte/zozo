@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}سجل التدقيق{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">سجل التدقيق</h1>
+    <a href="{{ url_for('settings.index') }}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-arrow-right"></i> العودة للإعدادات
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">فلاتر البحث</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label for="action" class="form-label">العملية</label>
+                    <select class="form-select" id="action" name="action">
+                        <option value="">الكل</option>
+                        <option value="create" {% if selected_action == 'create' %}selected{% endif %}>إضافة</option>
+                        <option value="update" {% if selected_action == 'update' %}selected{% endif %}>تعديل</option>
+                        <option value="delete" {% if selected_action == 'delete' %}selected{% endif %}>حذف</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="entity_type" class="form-label">القسم/الكيان</label>
+                    <select class="form-select" id="entity_type" name="entity_type">
+                        <option value="">الكل</option>
+                        {% for entity in entity_types %}
+                        <option value="{{ entity }}" {% if selected_entity == entity %}selected{% endif %}>{{ entity }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="username" class="form-label">المستخدم</label>
+                    <input type="text" class="form-control" id="username" name="username" value="{{ selected_username }}" placeholder="اسم المستخدم">
+                </div>
+                <div class="col-md-2">
+                    <label for="from_date" class="form-label">من تاريخ</label>
+                    <input type="date" class="form-control" id="from_date" name="from_date" value="{{ from_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="to_date" class="form-label">إلى تاريخ</label>
+                    <input type="date" class="form-control" id="to_date" name="to_date" value="{{ to_date }}">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">الحركات المسجلة</h5>
+        <span class="badge bg-light text-dark">{{ pagination.total }} سجل</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الوقت</th>
+                    <th>المستخدم</th>
+                    <th>العملية</th>
+                    <th>القسم</th>
+                    <th>المعرف</th>
+                    <th>الملخص</th>
+                    <th>التفاصيل</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}</td>
+                    <td>{{ log.username or '-' }}</td>
+                    <td>
+                        {% if log.action == 'create' %}
+                            <span class="badge bg-success">إضافة</span>
+                        {% elif log.action == 'update' %}
+                            <span class="badge bg-warning text-dark">تعديل</span>
+                        {% elif log.action == 'delete' %}
+                            <span class="badge bg-danger">حذف</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ log.action }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ log.entity_type }}</td>
+                    <td>{{ log.entity_id or '-' }}</td>
+                    <td>{{ log.summary or '-' }}</td>
+                    <td style="min-width: 320px;">
+                        {% if log.changes_dict %}
+                            <details>
+                                <summary>عرض</summary>
+                                <table class="table table-sm mt-2 mb-0">
+                                    <tbody>
+                                        {% for key, value in log.changes_dict.items() %}
+                                        <tr>
+                                            <th class="text-nowrap">{{ key }}</th>
+                                            <td>
+                                                {% if value is mapping and 'from' in value and 'to' in value %}
+                                                    <span class="text-danger">{{ value['from'] }}</span>
+                                                    <i class="bi bi-arrow-left-right mx-1"></i>
+                                                    <span class="text-success">{{ value['to'] }}</span>
+                                                {% else %}
+                                                    {{ value }}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </details>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted p-4">لا توجد سجلات مطابقة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('settings.audit_logs', page=pagination.prev_num, action=selected_action, entity_type=selected_entity, username=selected_username, from_date=from_date, to_date=to_date) }}">
+                السابق
+            </a>
+        </li>
+        <li class="page-item disabled">
+            <span class="page-link">{{ pagination.page }} / {{ pagination.pages }}</span>
+        </li>
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('settings.audit_logs', page=pagination.next_num, action=selected_action, entity_type=selected_entity, username=selected_username, from_date=from_date, to_date=to_date) }}">
+                التالي
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

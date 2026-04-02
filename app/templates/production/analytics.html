@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}تحليلات الإنتاج{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2><i class="fas fa-chart-bar"></i> تحليلات الإنتاج والأداء</h2>
+    <hr>
+
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">إجمالي الإنتاج</h6>
+                    <h3 class="text-primary">
+                        <i class="fas fa-boxes"></i> {{ "%.2f"|format(total_production) }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">إجمالي المبيعات</h6>
+                    <h3 class="text-success">
+                        <i class="fas fa-money-bill-wave"></i> {{ "%.2f"|format(total_sales) }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">إجمالي التكاليف</h6>
+                    <h3 class="text-warning">
+                        <i class="fas fa-money-bill"></i> {{ "%.2f"|format(total_costs) }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">الربحية</h6>
+                    <h3 class="{% if profitability >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <i class="fas fa-chart-line"></i> {{ "%.2f"|format(profitability) }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- الأصناف الأكثر إنتاجية -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-crown"></i> أفضل الأصناف إنتاجياً</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>الصنف</th>
+                                <th class="text-end">الكمية</th>
+                                <th class="text-end">المبيعات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for crop_name, total_qty, total_sales_item in top_crops %}
+                            <tr>
+                                <td>{{ crop_name }}</td>
+                                <td class="text-end"><strong>{{ "%.2f"|format(total_qty or 0) }}</strong></td>
+                                <td class="text-end"><strong>{{ "%.2f"|format(total_sales_item or 0) }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- الأصناف الأكثر ربحية -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-thumbs-up"></i> الأصناف الأكثر ربحية</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>الصنف</th>
+                                <th class="text-end">الربح</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for crop_info in crop_profitability %}
+                            <tr>
+                                <td>{{ crop_info.name }}</td>
+                                <td class="text-end">
+                                    <span class="badge bg-success">
+                                        {{ "%.2f"|format(crop_info.profitability) }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الأصناف الحرجة -->
+    {% if critical_crops %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-exclamation-triangle"></i> أصناف حرجة تحتاج اهتمام</h5>
+                <ul class="mb-0">
+                    {% for crop in critical_crops %}
+                    <li><strong>{{ crop.name }}</strong></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- الإجراءات المقترحة -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb"></i> الإجراءات والتوصيات</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if crop_profitability %}
+                        <div class="col-md-6">
+                            <h6>الأصناف الموصى بتعزيزها:</h6>
+                            <ul>
+                                {% for crop in crop_profitability[:3] %}
+                                <li>{{ crop.name }} (ربح: {{ "%.2f"|format(crop.profitability) }})</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6">
+                            <h6>التوصيات العامة:</h6>
+                            <ul>
+                                <li>مراجعة تكاليف الإنتاج بشكل دوري</li>
+                                <li>تحسين أصناف الجودة العالية</li>
+                                <li>متابعة صحة المحاصيل بانتظام</li>
+                                <li>تحسين كفاءة الاستخدام والتخزين</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}خطأ 500 - خطأ في الخادم{% endblock %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <h1 class="display-1">500</h1>
+    <h2>خطأ في الخادم</h2>
+    <p class="lead">عذراً، حدث خطأ في التطبيق. يرجى محاولة تحديث الصفحة أو الاتصال بالدعم الفني.</p>
+    <a href="{{ url_for('home.index') }}" class="btn btn-primary">العودة إلى الصفحة الرئيسية</a>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل استهلاك{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تعديل استهلاك - {{ consumption.inventory_item.name }}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="inventory_item_id" class="form-label">المنتج</label>
+                    <select class="form-select" id="inventory_item_id" name="inventory_item_id" required 
+                            onchange="updateItemInfo()">
+                        {% for item in inventory_items %}
+                        <option value="{{ item.id }}" data-category="{{ item.category }}" 
+                                data-quantity="{{ item.quantity }}" data-unit="{{ item.unit }}"
+                                {% if item.id == consumption.inventory_item_id %}selected{% endif %}>
+                            {{ item.name }} ({{ item.category }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="consumption_type" class="form-label">نوع الاستهلاك</label>
+                    <input type="text" class="form-control" id="consumption_type" name="consumption_type" 
+                           placeholder="مثال: رش، تسميد، وقود، إلخ" required 
+                           value="{{ consumption.consumption_type }}">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="quantity_used" class="form-label">الكمية المستخدمة</label>
+                    <input type="number" class="form-control" id="quantity_used" name="quantity_used" 
+                           step="0.01" required min="0.01" value="{{ consumption.quantity_used }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="unit_display" class="form-label">الوحدة</label>
+                    <input type="text" class="form-control" id="unit_display" disabled 
+                           value="{{ consumption.inventory_item.unit }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="available_quantity" class="form-label">الكمية المتوفرة حالياً</label>
+                    <input type="text" class="form-control" id="available_quantity" disabled>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="consumption_date" class="form-label">تاريخ الاستهلاك</label>
+                    <input type="date" class="form-control" id="consumption_date" name="consumption_date" 
+                           required value="{{ consumption.consumption_date.strftime('%Y-%m-%d') }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3" 
+                          placeholder="أضف أي ملاحظات إضافية...">{{ consumption.notes or '' }}</textarea>
+            </div>
+
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle"></i> تغيير الكمية سيعدّل الكمية المتوفرة في المخزون
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> حفظ التغييرات
+                </button>
+                <a href="{{ url_for('production.general_consumptions') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function updateItemInfo() {
+    const select = document.getElementById('inventory_item_id');
+    const option = select.options[select.selectedIndex];
+    
+    document.getElementById('unit_display').value = option.getAttribute('data-unit') || '';
+    document.getElementById('available_quantity').value = option.getAttribute('data-quantity') || '';
+}
+
+// Update on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateItemInfo();
+});
+</script>
+{% endblock %}

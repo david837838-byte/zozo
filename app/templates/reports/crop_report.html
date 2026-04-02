@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير الصنف - {{ crop.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تقرير الصنف - {{ crop.name }}</h1>
+        <p class="text-muted">{{ crop.category }} | {{ crop.variety or 'بدون تصنيف' }}</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <p class="text-muted">إجمالي الإنتاج</p>
+                <h3>{{ total_production|round(1) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <p class="text-muted">كمية المبيعات</p>
+                <h3>{{ total_sales|round(1) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <p class="text-muted">إجمالي الإيرادات</p>
+                <h3>{{ total_revenue|round(0) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <p class="text-muted">المتبقي</p>
+                <h3>{{ (total_production - total_sales)|round(1) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">سجل الإنتاج</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الكمية</th>
+                            <th>الوحدة</th>
+                            <th>الجودة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for production in production_records %}
+                        <tr>
+                            <td>{{ production.production_date }}</td>
+                            <td>{{ production.quantity }}</td>
+                            <td>{{ production.unit }}</td>
+                            <td>{{ production.quality or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted p-3">لا توجد سجلات إنتاج</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">سجل المبيعات</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                            <th>الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales_records %}
+                        <tr>
+                            <td>{{ sale.sale_date }}</td>
+                            <td>{{ sale.quantity }}</td>
+                            <td>{{ sale.price_per_unit }}</td>
+                            <td>{{ sale.total_price }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted p-3">لا توجد مبيعات</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">استهلاك الأدوية والأسمدة</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>المنتج</th>
+                    <th>الفئة</th>
+                    <th>التاريخ</th>
+                    <th>الكمية المستخدمة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for consumption in consumptions %}
+                <tr>
+                    <td>{{ consumption.inventory_item.name }}</td>
+                    <td>{{ consumption.inventory_item.category }}</td>
+                    <td>{{ consumption.consumption_date }}</td>
+                    <td>{{ consumption.quantity_used }} {{ consumption.inventory_item.unit }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted p-3">لا يوجد استهلاك مسجل</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('production.crops') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> عودة إلى الأصناف
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}التقارير - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>مركز التقارير التفصيلية</h1>
+        <p class="text-muted mb-0">كل قسم في النظام له تقرير تفصيلي مستقل داخل هذه الصفحة.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <small class="text-muted d-block">العمال</small>
+                <strong>{{ summary.workers_count }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <small class="text-muted d-block">المخزون</small>
+                <strong>{{ summary.inventory_items_count }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <small class="text-muted d-block">الأصناف</small>
+                <strong>{{ summary.crops_count }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <small class="text-muted d-block">المبيعات</small>
+                <strong>{{ summary.sales_count }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <small class="text-muted d-block">المحاسبة</small>
+                <strong>{{ summary.transactions_count }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <small class="text-muted d-block">المحركات</small>
+                <strong>{{ summary.motors_count }}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>تقرير العمال التفصيلي</strong></div>
+            <div class="card-body">
+                حالة العمال، الساعات، الحضور، الحسابات المسكرة، وأفضل أداء.
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('reports.workers_detailed_report') }}" class="btn btn-primary btn-sm">فتح التقرير</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>تقرير المخزون التفصيلي</strong></div>
+            <div class="card-body">
+                حركة دخول/خروج، المشتريات، الاستهلاك، المخزون المنخفض، وصناديق التعبئة.
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('reports.inventory_detailed_report') }}" class="btn btn-primary btn-sm">فتح التقرير</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>تقرير الإنتاج التفصيلي</strong></div>
+            <div class="card-body">
+                حجم الإنتاج، أداء الأصناف، استهلاك كل صنف، ومقارنة الإنتاج بالمبيعات.
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('reports.production_detailed_report') }}" class="btn btn-primary btn-sm">فتح التقرير</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>تقرير المبيعات التفصيلي</strong></div>
+            <div class="card-body">
+                الإيرادات، حالة التحصيل، تحليل المشترين، والمبيعات حسب الأصناف.
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('reports.sales_detailed_report') }}" class="btn btn-success btn-sm">فتح التقرير</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>تقرير المحاسبة التفصيلي</strong></div>
+            <div class="card-body">
+                دخل/مصروف، صافي الربح، مصروفات حسب الفئات، وتحليل شهري.
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('reports.accounting_detailed_report') }}" class="btn btn-success btn-sm">فتح التقرير</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>تقرير المحركات التفصيلي</strong></div>
+            <div class="card-body">
+                ساعات التشغيل، الوقود، التكاليف، حصص المشغلين، والأداء حسب المحرك.
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('reports.motors_detailed_report') }}" class="btn btn-success btn-sm">فتح التقرير</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

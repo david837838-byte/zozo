@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير المبيعات التفصيلي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">تقرير المبيعات التفصيلي</h1>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm">العودة للتقارير</a>
+</div>
+
+{% include "reports/_report_filters_exports.html" %}
+
+<div class="row mb-4">
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>عدد عمليات البيع</small><h5>{{ sales_count }}</h5></div></div></div>
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي الكمية</small><h5>{{ "%.2f"|format(total_quantity) }}</h5></div></div></div>
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي الإيراد</small><h5 class="text-success">{{ "%.2f"|format(total_revenue) }}</h5></div></div></div>
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>غير محصل</small><h5 class="text-danger">{{ "%.2f"|format(unpaid_revenue) }}</h5></div></div></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">حالة التحصيل</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>المحصل (مدفوع):</strong> {{ "%.2f"|format(paid_revenue) }}</p>
+                <p class="mb-0"><strong>غير المحصل:</strong> {{ "%.2f"|format(unpaid_revenue) }}</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>الحالة</th><th>عدد السجلات</th><th>القيمة</th></tr></thead>
+                    <tbody>
+                        {% for row in payment_status_summary %}
+                        <tr><td>{{ row.payment_status }}</td><td>{{ row.entries }}</td><td>{{ "%.2f"|format(row.amount) }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">أعلى المشترين</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>المشتري</th><th>عدد العمليات</th><th>الكمية</th><th>الإيراد</th></tr></thead>
+                    <tbody>
+                        {% for row in sales_by_buyer %}
+                        <tr><td>{{ row.buyer_name }}</td><td>{{ row.entries }}</td><td>{{ "%.2f"|format(row.qty) }}</td><td>{{ "%.2f"|format(row.revenue) }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">المبيعات حسب الصنف</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>الصنف</th><th>عدد العمليات</th><th>الكمية</th><th>الإيراد</th></tr></thead>
+            <tbody>
+                {% for row in sales_by_crop %}
+                <tr><td>{{ row.crop_name }}</td><td>{{ row.entries }}</td><td>{{ "%.2f"|format(row.qty) }}</td><td>{{ "%.2f"|format(row.revenue) }}</td></tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">آخر المبيعات غير المدفوعة</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr><th>التاريخ</th><th>الصنف</th><th>المشتري</th><th>القيمة</th><th>الحالة</th></tr></thead>
+            <tbody>
+                {% for row in recent_unpaid %}
+                <tr>
+                    <td>{{ row.sale_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ row.crop.name }}</td>
+                    <td>{{ row.buyer_name or '-' }}</td>
+                    <td>{{ "%.2f"|format(row.total_price) }}</td>
+                    <td>{{ row.payment_status }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted">لا توجد مبيعات غير مدفوعة.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

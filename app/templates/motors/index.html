@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المحركات{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <!-- رأس الصفحة -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-cogs text-primary"></i> إدارة المحركات
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('motors.add_motor') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> إضافة محرك جديد
+            </a>
+            <a href="{{ url_for('motors.usage_logs') }}" class="btn btn-info ms-2">
+                <i class="fas fa-history"></i> سجل الاستخدام
+            </a>
+            <a href="{{ url_for('motors.motor_costs') }}" class="btn btn-success ms-2">
+                <i class="fas fa-dollar-sign"></i> التكاليف
+            </a>
+            <div class="btn-group ms-2" role="group">
+                <button id="quotasBtn" type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-hourglass-half"></i> إدارة الساعات
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="quotasBtn">
+                    <li><a class="dropdown-item" href="{{ url_for('motors.operator_quotas') }}">
+                        <i class="fas fa-list"></i> حصص الساعات السنوية
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('motors.add_quota') }}">
+                        <i class="fas fa-plus"></i> إضافة حصة جديدة
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('motors.operators_annual_report') }}">
+                        <i class="fas fa-chart-bar"></i> التقرير السنوي
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- تنبيهات -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                <i class="fas fa-{{ 'exclamation-circle' if category == 'danger' else 'check-circle' }}"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- البحث والتصفية -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('motors.index') }}" class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="ابحث حسب الاسم أو النوع أو الموقع..."
+                           value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-search"></i> بحث
+                    </button>
+                </div>
+                {% if search %}
+                <div class="col-md-2">
+                    <a href="{{ url_for('motors.index') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- الجدول -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>اسم المحرك</th>
+                        <th>النوع</th>
+                        <th>موديل</th>
+                        <th>القوة (HP)</th>
+                        <th>الموقع</th>
+                        <th>تاريخ الشراء</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if motors.items %}
+                        {% for motor in motors.items %}
+                        <tr>
+                            <td>
+                                <strong>{{ motor.name }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ motor.motor_type }}</span>
+                            </td>
+                            <td>{{ motor.model or '-' }}</td>
+                            <td>{{ motor.capacity or '-' }}</td>
+                            <td>
+                                {% if motor.location %}
+                                    <i class="fas fa-map-marker-alt"></i> {{ motor.location }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if motor.purchase_date %}
+                                    {{ motor.purchase_date.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if motor.is_active %}
+                                    <span class="badge bg-success">نشط</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">معطل</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('motors.view_motor', motor_id=motor.id) }}" 
+                                       class="btn btn-sm btn-outline-info" title="عرض التفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('motors.add_motor_cost', motor_id=motor.id) }}" 
+                                       class="btn btn-sm btn-outline-success" title="إضافة تكلفة">
+                                        <i class="fas fa-dollar-sign"></i>
+                                    </a>
+                                    <a href="{{ url_for('motors.edit_motor', motor_id=motor.id) }}" 
+                                       class="btn btn-sm btn-outline-warning" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('motors.delete_motor', motor_id=motor.id) }}" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('هل أنت متأكد من حذف هذا المحرك؟');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox"></i> لا توجد محركات
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- التصفح -->
+    {% if motors.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if motors.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('motors.index', page=motors.prev_num, search=search) }}">
+                    السابق
+                </a>
+            </li>
+            {% endif %}
+
+            {% for page_num in motors.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num == motors.page %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('motors.index', page=page_num, search=search) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% endif %}
+                {% else %}
+                    {% if not motors.has_prev and loop.index == 2 %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% elif loop.index == motors.pages and motors.has_next %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+
+            {% if motors.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('motors.index', page=motors.next_num, search=search) }}">
+                    التالي
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+</style>
+{% endblock %}

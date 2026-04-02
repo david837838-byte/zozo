@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل مرحلة إنتاج{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>
+            <i class="fas fa-edit"></i> تعديل مرحلة إنتاج: {{ stage.stage_name }}
+        </h1>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="stage_name" class="form-label">
+                        <i class="fas fa-tag"></i> اسم المرحلة
+                    </label>
+                    <input type="text" class="form-control" id="stage_name" name="stage_name" 
+                           value="{{ stage.stage_name }}" required placeholder="مثال: مرحلة البذر، مرحلة الإنبات...">
+                </div>
+                <div class="col-md-6">
+                    <label for="stage_order" class="form-label">
+                        <i class="fas fa-sort-numeric-up"></i> ترتيب المرحلة
+                    </label>
+                    <input type="number" class="form-control" id="stage_order" name="stage_order" 
+                           value="{{ stage.stage_order }}" required min="1">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="start_date" class="form-label">
+                        <i class="fas fa-calendar-alt"></i> تاريخ البداية
+                    </label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ stage.start_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="end_date" class="form-label">
+                        <i class="fas fa-calendar-alt"></i> تاريخ النهاية
+                    </label>
+                    <input type="date" class="form-control" id="end_date" name="end_date"
+                           value="{% if stage.end_date %}{{ stage.end_date.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="expected_duration_days" class="form-label">
+                        <i class="fas fa-clock"></i> المدة المتوقعة (أيام)
+                    </label>
+                    <input type="number" class="form-control" id="expected_duration_days" name="expected_duration_days" 
+                           value="{% if stage.expected_duration_days %}{{ stage.expected_duration_days }}{% endif %}" min="1">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">
+                    <i class="fas fa-align-left"></i> وصف المرحلة
+                </label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ stage.description or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="required_actions" class="form-label">
+                    <i class="fas fa-tasks"></i> الإجراءات المطلوبة
+                </label>
+                <textarea class="form-control" id="required_actions" name="required_actions" rows="3">{{ stage.required_actions or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="completion_notes" class="form-label">
+                    <i class="fas fa-note-sticky"></i> ملاحظات الإنجاز
+                </label>
+                <textarea class="form-control" id="completion_notes" name="completion_notes" rows="3">{{ stage.completion_notes or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save"></i> حفظ التعديلات
+                </button>
+                <a href="{{ url_for('production.production_stages', crop_id=crop.id) }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-arrow-left"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

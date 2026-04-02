@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة مرحلة إنتاج{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2><i class="fas fa-plus"></i> إضافة مرحلة إنتاج: {{ crop.name }}</h2>
+            <hr>
+
+            <form method="POST" class="needs-validation">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="stage_name" class="form-label">اسم المرحلة <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="stage_name" name="stage_name" required>
+                                        <option value="">اختر المرحلة</option>
+                                        <option value="التشريق">التشريق (الإنبات)</option>
+                                        <option value="النمو الخضري">النمو الخضري</option>
+                                        <option value="التزهير">التزهير</option>
+                                        <option value="عقد الثمار">عقد الثمار</option>
+                                        <option value="نمو الثمار">نمو الثمار</option>
+                                        <option value="النضج">النضج</option>
+                                        <option value="الطرح">الطرح (الحصاد)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="stage_order" class="form-label">ترتيب المرحلة <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="stage_order" name="stage_order" min="1" placeholder="1" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">تاريخ البداية <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">تاريخ النهاية</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="expected_duration_days" class="form-label">المدة المتوقعة (بالأيام)</label>
+                            <input type="number" class="form-control" id="expected_duration_days" name="expected_duration_days" min="0">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">وصف المرحلة</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="وصف تفصيلي لهذه المرحلة من دورة النمو"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="required_actions" class="form-label">الإجراءات المطلوبة</label>
+                            <textarea class="form-control" id="required_actions" name="required_actions" rows="3" placeholder="الري، التسميد، المكافحة..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="completion_notes" class="form-label">ملاحظات الإكمال</label>
+                            <textarea class="form-control" id="completion_notes" name="completion_notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ المرحلة
+                    </button>
+                    <a href="{{ url_for('production.production_stages', crop_id=crop.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

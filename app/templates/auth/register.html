@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل مستخدم جديد{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0">إضافة مستخدم جديد</h4>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="username" class="form-label">اسم المستخدم</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label">البريد الإلكتروني</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="password" class="form-label">كلمة المرور</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="full_name" class="form-label">الاسم الكامل</label>
+                    <input type="text" class="form-control" id="full_name" name="full_name" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">إضافة مستخدم</button>
+                <a href="{{ url_for('settings.users') }}" class="btn btn-secondary">عودة</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل الدفعة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-box"></i> تفاصيل الدفعة: {{ batch.batch_number }}</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('production.edit_production_batch', batch_id=batch.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+            <form method="POST" action="{{ url_for('production.delete_production_batch', batch_id=batch.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('هل تريد فعلاً حذف هذه الدفعة؟');">
+                    <i class="fas fa-trash"></i> حذف
+                </button>
+            </form>
+            <a href="{{ url_for('production.production_batches') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">معلومات الدفعة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <p><strong>الصنف:</strong> {{ batch.crop.name }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>الحالة:</strong> 
+                                {% if batch.batch_status == 'جارية' %}
+                                    <span class="badge bg-warning">{{ batch.batch_status }}</span>
+                                {% elif batch.batch_status == 'محصودة' %}
+                                    <span class="badge bg-info">{{ batch.batch_status }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">{{ batch.batch_status }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>تاريخ الزراعة:</strong> {{ batch.planting_date.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>المساحة:</strong> 
+                                {% if batch.area_used %}
+                                    {{ "%.2f"|format(batch.area_used) }} متر مربع
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">تفصيل التكاليف</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td>تجهيز التربة:</td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(batch.soil_preparation_cost) }}</strong></td>
+                            <td>البذور:</td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(batch.seeds_cost) }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>الأسمدة:</td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(batch.fertilizers_cost) }}</strong></td>
+                            <td>المبيدات:</td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(batch.pesticides_cost) }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>العمالة:</td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(batch.labor_cost) }}</strong></td>
+                            <td>الري:</td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(batch.watering_cost) }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>تكاليف أخرى:</td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(batch.other_costs) }}</strong></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr class="table-dark">
+                            <td colspan="3"><strong>إجمالي التكاليف:</strong></td>
+                            <td class="text-end"><strong class="text-danger">{{ "%.2f"|format(batch.get_total_costs()) }}</strong></td>
+                        </tr>
+                        {% if batch.area_used and batch.area_used > 0 %}
+                        <tr class="table-info">
+                            <td colspan="3"><strong>التكلفة للمتر المربع:</strong></td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(batch.get_cost_per_area()) }}</strong></td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if stages %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">مراحل النمو</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for stage in stages %}
+                        <div class="timeline-item mb-3">
+                            <div class="timeline-marker {% if stage.is_completed %}bg-success{% else %}bg-secondary{% endif %}">
+                                <i class="fas {% if stage.is_completed %}fa-check{% else %}fa-clock{% endif %}"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>{{ stage.stage_name }}</h6>
+                                <small class="text-muted">
+                                    البداية: {{ stage.start_date.strftime('%Y-%m-%d') }}
+                                    {% if stage.end_date %}
+                                        | النهاية: {{ stage.end_date.strftime('%Y-%m-%d') }}
+                                    {% endif %}
+                                    | المدة: {{ stage.get_duration() }} أيام
+                                </small>
+                                <p class="mt-2">{{ stage.description }}</p>
+                                {% if stage.required_actions %}
+                                <p><strong>الإجراءات المطلوبة:</strong> {{ stage.required_actions }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if batch.notes %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-light">
+                <strong>ملاحظات:</strong><br>
+                {{ batch.notes }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    display: flex;
+    align-items: flex-start;
+}
+
+.timeline-marker {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.timeline-content {
+    flex: 1;
+}
+</style>
+{% endblock %}

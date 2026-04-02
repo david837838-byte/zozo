@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الملف الشخصي{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit"></i> تعديل ملفي الشخصي
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">اسم المستخدم</label>
+                            <input type="text" class="form-control" id="username" 
+                                   value="{{ user.username }}" disabled>
+                            <small class="text-muted">لا يمكن تغيير اسم المستخدم</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">الاسم الكامل</label>
+                            <input type="text" class="form-control" id="full_name" 
+                                   name="full_name" value="{{ user.full_name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="email" 
+                                   name="email" value="{{ user.email }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">نوع الحساب</label>
+                            <input type="text" class="form-control" 
+                                   value="{% if user.is_admin %}إداري{% else %}مستخدم عادي{% endif %}" disabled>
+                            <small class="text-muted">يتم تحديد نوع الحساب من قبل الإدارة</small>
+                        </div>
+                        
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle"></i>
+                            لتغيير كلمة المرور، استخدم <a href="{{ url_for('auth.change_password') }}" class="alert-link">خاصية تغيير كلمة المرور</a>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> حفظ التغييرات
+                            </button>
+                            <a href="{{ url_for('settings.profile') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

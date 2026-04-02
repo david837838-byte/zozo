@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ site_name }}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            scrollbar-gutter: stable;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #2d5016 0%, #3d6b1f 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #fff !important;
+        }
+        
+        .sidebar {
+            background-color: #fff;
+            min-height: calc(100vh - 60px);
+            padding: 20px;
+            box-shadow: 2px 0 4px rgba(0,0,0,.05);
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,.05);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #2d5016 0%, #3d6b1f 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary {
+            background-color: #3d6b1f;
+            border-color: #3d6b1f;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2d5016;
+            border-color: #2d5016;
+        }
+        
+        .sidebar a {
+            color: #333;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: block;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+        
+        .sidebar a:hover {
+            background-color: #f0f0f0;
+            color: #3d6b1f;
+        }
+        
+        .sidebar a.active {
+            background-color: #3d6b1f;
+            color: white;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .badge {
+            padding: 5px 10px;
+        }
+
+        /* تحسينات البطاقات */
+        .hover-shadow {
+            box-shadow: 0 2px 8px rgba(0,0,0,.08) !important;
+        }
+
+        .hover-shadow:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,.15) !important;
+            transform: translateY(-2px);
+        }
+
+        .card.border-0.shadow-sm {
+            transition: all 0.3s ease;
+        }
+
+        /* شكل جميل للبطاقات */
+        .card {
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,.1) !important;
+        }
+
+        /* أزرار محسّنة */
+        .btn-outline-warning, .btn-outline-info {
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-warning:hover, .btn-outline-info:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,.15);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 60px;
+                width: 250px;
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+                z-index: 1000;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-leaf"></i> {{ site_name }}
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i> {{ current_user.full_name }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('settings.profile') }}"><i class="fas fa-user"></i> ملفي الشخصي</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}"><i class="fas fa-key"></i> تغيير كلمة المرور</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if current_user.is_admin %}
+                                    <li><a class="dropdown-item" href="{{ url_for('settings.index') }}"><i class="bi bi-gear"></i> إدارة النظام</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> تسجيل الخروج</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">تسجيل الدخول</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            {% if current_user.is_authenticated %}
+            <nav class="col-md-2 d-md-block sidebar">
+                <div class="position-sticky">
+                    <h5 class="mb-3">القائمة الرئيسية</h5>
+                    <a href="{{ url_for('home.dashboard') }}" class="{% if request.endpoint == 'home.dashboard' %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i> لوحة التحكم
+                    </a>
+                    
+                    {% if current_user.can_manage_workers or current_user.is_admin %}
+                    <a href="{{ url_for('workers.index') }}" class="{% if 'workers' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-people"></i> العمال
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.can_manage_inventory or current_user.is_admin %}
+                    <a href="{{ url_for('motors.index') }}" class="{% if 'motors' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-gear"></i> المحركات
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.can_manage_inventory or current_user.is_admin %}
+                    <a href="{{ url_for('inventory.index') }}" class="{% if 'inventory' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-boxes"></i> المخزون
+                    </a>
+                    <a href="{{ url_for('inventory.boxes') }}" class="{% if 'boxes' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-box-seam"></i> الشراحات والكراتين
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.can_manage_production or current_user.is_admin %}
+                    <a href="{{ url_for('production.index') }}" class="{% if 'production' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-plant"></i> الإنتاج
+                    </a>
+                    <a href="{{ url_for('production.general_consumptions') }}" class="{% if 'general_consumptions' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-arrow-down-circle"></i> الاستهلاكات
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.can_manage_sales or current_user.is_admin %}
+                    <a href="{{ url_for('sales.index') }}" class="{% if 'sales' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-cart-check"></i> المبيعات
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.can_manage_accounting or current_user.is_admin %}
+                    <a href="{{ url_for('accounting.index') }}" class="{% if 'accounting' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-calculator"></i> المحاسبة
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.can_manage_reports or current_user.is_admin %}
+                    <a href="{{ url_for('reports.index') }}" class="{% if 'reports' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-file-earmark-pdf"></i> التقارير
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('settings.index') }}" class="{% if 'settings' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-gear"></i> الإعدادات
+                    </a>
+                    {% endif %}
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-10 ms-sm-auto px-md-4 main-content">
+            {% else %}
+            <main class="container main-content">
+            {% endif %}
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show auto-dismiss-{{ 'success' if category == 'success' else 'false' }}" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // إخفاء رسائل النجاح تلقائياً بعد 3 ثوانٍ
+        document.addEventListener('DOMContentLoaded', function() {
+            const successAlerts = document.querySelectorAll('.alert.auto-dismiss-success');
+            successAlerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 3000); // 3 ثوانٍ
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

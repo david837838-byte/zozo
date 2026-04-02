@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة حصة ساعات جديدة{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <!-- رأس الصفحة -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('motors.operator_quotas') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <h1 class="h3 mb-0 ms-3">
+                    <i class="fas fa-plus text-success"></i> إضافة حصة ساعات جديدة
+                </h1>
+            </div>
+
+            <!-- النموذج -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation">
+                        <div class="mb-3">
+                            <label for="operator_name" class="form-label">اسم المشغل <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="operator_name" name="operator_name" required>
+                            <small class="text-muted">أدخل اسم المشغل كاملاً</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="year" class="form-label">السنة <span class="text-danger">*</span></label>
+                            <select class="form-select" id="year" name="year" required>
+                                <option value="">-- اختر السنة --</option>
+                                {% for y in range(2024, 2036) %}
+                                <option value="{{ y }}" {% if y == 2026 %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="allocated_hours" class="form-label">الساعات المخصصة <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="allocated_hours" name="allocated_hours" 
+                                   step="0.5" min="0" required placeholder="مثال: 100">
+                            <small class="text-muted">عدد الساعات المسموح بها للمشغل في السنة</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status" class="form-label">الحالة</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="نشط" selected>نشط</option>
+                                <option value="مجمد">مجمد</option>
+                                <option value="معطل">معطل</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="أضف أي ملاحظات..."></textarea>
+                        </div>
+
+                        <!-- معلومات إضافية -->
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle"></i> سيتم تتبع ساعات المشغل تلقائياً عند كل إضافة استخدام
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> حفظ الحصة
+                            </button>
+                            <a href="{{ url_for('motors.operator_quotas') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

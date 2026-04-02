@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل دفعة إنتاج{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>
+            <i class="fas fa-edit"></i> تعديل دفعة إنتاج: {{ batch.batch_number }}
+        </h1>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="crop_id" class="form-label">
+                        <i class="fas fa-leaf"></i> الصنف
+                    </label>
+                    <select class="form-control" id="crop_id" name="crop_id" required>
+                        <option value="">-- اختر صنفاً --</option>
+                        {% for crop in crops %}
+                            <option value="{{ crop.id }}"{% if crop.id == batch.crop_id %} selected{% endif %}>
+                                {{ crop.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="planting_date" class="form-label">
+                        <i class="fas fa-calendar"></i> تاريخ الزراعة
+                    </label>
+                    <input type="date" class="form-control" id="planting_date" name="planting_date" 
+                           value="{{ batch.planting_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="expected_harvest_date" class="form-label">
+                        <i class="fas fa-harvest"></i> تاريخ الحصاد المتوقع
+                    </label>
+                    <input type="date" class="form-control" id="expected_harvest_date" name="expected_harvest_date"
+                           value="{% if batch.expected_harvest_date %}{{ batch.expected_harvest_date.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
+                <div class="col-md-6">
+                    <label for="area_used" class="form-label">
+                        <i class="fas fa-ruler"></i> المساحة المستخدمة (م²)
+                    </label>
+                    <input type="number" class="form-control" id="area_used" name="area_used" step="0.01"
+                           value="{% if batch.area_used %}{{ batch.area_used }}{% endif %}">
+                </div>
+            </div>
+
+            <!-- التكاليف -->
+            <div class="card bg-light mb-3">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-coins"></i> <strong>تفصيل التكاليف</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="soil_preparation_cost" class="form-label">تكلفة تحضير التربة (ر.س)</label>
+                            <input type="number" class="form-control" id="soil_preparation_cost" name="soil_preparation_cost" 
+                                   step="0.01" value="{{ batch.soil_preparation_cost or 0 }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="seeds_cost" class="form-label">تكلفة البذور (ر.س)</label>
+                            <input type="number" class="form-control" id="seeds_cost" name="seeds_cost" 
+                                   step="0.01" value="{{ batch.seeds_cost or 0 }}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fertilizers_cost" class="form-label">تكلفة الأسمدة (ر.س)</label>
+                            <input type="number" class="form-control" id="fertilizers_cost" name="fertilizers_cost" 
+                                   step="0.01" value="{{ batch.fertilizers_cost or 0 }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="pesticides_cost" class="form-label">تكلفة المبيدات (ر.س)</label>
+                            <input type="number" class="form-control" id="pesticides_cost" name="pesticides_cost" 
+                                   step="0.01" value="{{ batch.pesticides_cost or 0 }}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="labor_cost" class="form-label">تكلفة العمالة (ر.س)</label>
+                            <input type="number" class="form-control" id="labor_cost" name="labor_cost" 
+                                   step="0.01" value="{{ batch.labor_cost or 0 }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="watering_cost" class="form-label">تكلفة الري (ر.س)</label>
+                            <input type="number" class="form-control" id="watering_cost" name="watering_cost" 
+                                   step="0.01" value="{{ batch.watering_cost or 0 }}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="other_costs" class="form-label">تكاليف أخرى (ر.س)</label>
+                            <input type="number" class="form-control" id="other_costs" name="other_costs" 
+                                   step="0.01" value="{{ batch.other_costs or 0 }}">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-success">
+                                <strong>إجمالي التكاليف:</strong>
+                                <h4 id="total_cost">{{ batch.get_total_costs() }} ر.س</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">
+                    <i class="fas fa-note-sticky"></i> ملاحظات
+                </label>
+                <textarea class="form-control" id="notes" name="notes" rows="3">{{ batch.notes or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save"></i> حفظ التعديلات
+                </button>
+                <a href="{{ url_for('production.production_batches') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-arrow-left"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const costs = [
+        'soil_preparation_cost', 'seeds_cost', 'fertilizers_cost', 
+        'pesticides_cost', 'labor_cost', 'watering_cost', 'other_costs'
+    ];
+    
+    costs.forEach(cost => {
+        document.getElementById(cost).addEventListener('change', calculateTotal);
+    });
+});
+
+function calculateTotal() {
+    const costs = [
+        'soil_preparation_cost', 'seeds_cost', 'fertilizers_cost', 
+        'pesticides_cost', 'labor_cost', 'watering_cost', 'other_costs'
+    ];
+    
+    let total = 0;
+    costs.forEach(cost => {
+        const value = parseFloat(document.getElementById(cost).value) || 0;
+        total += value;
+    });
+    
+    document.getElementById('total_cost').textContent = total.toFixed(2) + ' ر.س';
+}
+</script>
+{% endblock %}

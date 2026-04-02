@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الصنف - {{ crop.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>
+            <i class="fas fa-edit"></i> تعديل الصنف: {{ crop.name }}
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('production.crops') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> العودة
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-warning text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-leaf"></i> بيانات الصنف
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" class="needs-validation">
+            <!-- معلومات أساسية -->
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    <i class="fas fa-info-circle"></i> البيانات الأساسية
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">
+                            <strong>اسم الصنف</strong>
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ crop.name }}" required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="category" class="form-label">
+                            <strong>النوع</strong>
+                            <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="فواكه" {% if crop.category == 'فواكه' %}selected{% endif %}>🍎 فواكه</option>
+                            <option value="خضروات" {% if crop.category == 'خضروات' %}selected{% endif %}>🥕 خضروات</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="variety" class="form-label">
+                            <strong>الصنف/النوعية</strong>
+                        </label>
+                        <input type="text" class="form-control" id="variety" name="variety" 
+                               value="{{ crop.variety or '' }}" placeholder="مثلاً: أحمر، أصفر...">
+                        <small class="text-muted">تحديد دقيق للصنف (اختياري)</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="location" class="form-label">
+                            <strong>موقع الزراعة</strong>
+                        </label>
+                        <input type="text" class="form-control" id="location" name="location" 
+                               value="{{ crop.location or '' }}" placeholder="موقع في المزرعة">
+                        <small class="text-muted">حدد الموقع الجغرافي</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- التواريخ والمساحة -->
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    <i class="fas fa-calendar-alt"></i> التواريخ والمساحة
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="planting_date" class="form-label">
+                            <strong>تاريخ الزراعة</strong>
+                        </label>
+                        <input type="date" class="form-control" id="planting_date" name="planting_date" 
+                               value="{% if crop.planting_date %}{{ crop.planting_date.strftime('%Y-%m-%d') }}{% endif %}">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="expected_harvest_date" class="form-label">
+                            <strong>تاريخ الحصاد المتوقع</strong>
+                        </label>
+                        <input type="date" class="form-control" id="expected_harvest_date" name="expected_harvest_date" 
+                               value="{% if crop.expected_harvest_date %}{{ crop.expected_harvest_date.strftime('%Y-%m-%d') }}{% endif %}">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="area" class="form-label">
+                            <strong>المساحة المزروعة</strong>
+                        </label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="area" name="area" 
+                                   step="0.01" min="0" value="{{ crop.area or '' }}">
+                            <span class="input-group-text">{{ crop.unit }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الحالة -->
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    <i class="fas fa-toggle-on"></i> الحالة
+                </h6>
+
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                           {% if crop.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">
+                        <strong>الصنف نشط</strong> - السماح بتسجيل إنتاج جديد
+                    </label>
+                </div>
+            </div>
+
+            <!-- معلومات التسجيل -->
+            <div class="alert alert-light mb-4">
+                <small class="text-muted">
+                    <i class="fas fa-database"></i>
+                    <strong>معرّف الصنف:</strong> #{{ crop.id }}<br>
+                    <strong>تم التسجيل:</strong> {{ crop.created_at.strftime('%d-%m-%Y %H:%M') }}<br>
+                    <strong>آخر تحديث:</strong> {{ crop.updated_at.strftime('%d-%m-%Y %H:%M') }}
+                </small>
+            </div>
+
+            <!-- إحصائيات سريعة -->
+            {% if crop.productions or crop.sales %}
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    <i class="fas fa-chart-bar"></i> إحصائيات
+                </h6>
+                <div class="row">
+                    {% if crop.productions %}
+                    <div class="col-md-4">
+                        <div class="alert alert-info mb-0">
+                            <strong>عدد سجلات الإنتاج:</strong> 
+                            <h5 class="mb-0">{{ crop.productions|length }}</h5>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if crop.sales %}
+                    <div class="col-md-4">
+                        <div class="alert alert-success mb-0">
+                            <strong>عدد عمليات البيع:</strong> 
+                            <h5 class="mb-0">{{ crop.sales|length }}</h5>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if crop.consumptions %}
+                    <div class="col-md-4">
+                        <div class="alert alert-warning mb-0">
+                            <strong>عمليات الاستهلاك:</strong> 
+                            <h5 class="mb-0">{{ crop.consumptions|length }}</h5>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- الأزرار -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-save"></i> حفظ التعديلات
+                </button>
+                <a href="{{ url_for('production.crops') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- وصلات سريعة -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-link"></i> وصلات سريعة
+                </h6>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('reports.crop_report', crop_id=crop.id) }}" class="btn btn-sm btn-info w-100 mb-2">
+                    <i class="fas fa-chart-line"></i> عرض تقرير الصنف
+                </a>
+                <a href="{{ url_for('production.add_production') }}?crop_id={{ crop.id }}" class="btn btn-sm btn-success w-100 mb-2">
+                    <i class="fas fa-plus-circle"></i> إضافة إنتاج جديد
+                </a>
+                <a href="{{ url_for('production.add_consumption', crop_id=crop.id) }}" class="btn btn-sm btn-warning w-100">
+                    <i class="fas fa-vial"></i> إضافة استهلاك
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> نصائح
+                </h6>
+            </div>
+            <div class="card-body small">
+                <p class="mb-2">
+                    <strong>• تاريخ الزراعة:</strong> مهم لتتبع دورة النمو والحصاد
+                </p>
+                <p class="mb-2">
+                    <strong>• المساحة:</strong> تساعد في حساب الإنتاجية والتخطيط
+                </p>
+                <p>
+                    <strong>• الحالة:</strong> عطّل الصنف إذا لم تعد تزرعه
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

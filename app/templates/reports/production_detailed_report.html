@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير الإنتاج التفصيلي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">تقرير الإنتاج التفصيلي</h1>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm">العودة للتقارير</a>
+</div>
+
+{% include "reports/_report_filters_exports.html" %}
+
+<div class="row mb-4">
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>الأصناف</small><h5>{{ crops|length }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>الأصناف النشطة</small><h5 class="text-success">{{ active_crops }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>سجلات الإنتاج</small><h5>{{ production_records_count }}</h5></div></div></div>
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي كمية الإنتاج</small><h5>{{ "%.2f"|format(total_production_qty) }}</h5></div></div></div>
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>استهلاك الأصناف</small><h5>{{ crop_consumption_count }} / {{ "%.2f"|format(crop_consumption_qty) }}</h5></div></div></div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">أداء الأصناف (إنتاج/بيع/إيراد)</div>
+    <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الصنف</th>
+                    <th>الفئة</th>
+                    <th>كمية الإنتاج</th>
+                    <th>سجلات الإنتاج</th>
+                    <th>كمية المبيعات</th>
+                    <th>الإيراد</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in crop_performance %}
+                <tr>
+                    <td>{{ row.crop_name }}</td>
+                    <td>{{ row.category }}</td>
+                    <td>{{ "%.2f"|format(row.produced_qty) }}</td>
+                    <td>{{ row.production_entries }}</td>
+                    <td>{{ "%.2f"|format(row.sold_qty) }}</td>
+                    <td>{{ "%.2f"|format(row.revenue) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">أعلى الأصناف استهلاكًا من المخزون</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>الصنف</th><th>كمية الاستهلاك</th><th>عدد السجلات</th></tr></thead>
+            <tbody>
+                {% for row in top_consumption_by_crop %}
+                <tr><td>{{ row.name }}</td><td>{{ "%.2f"|format(row.used_qty) }}</td><td>{{ row.entries }}</td></tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">آخر سجلات الإنتاج</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>التاريخ</th><th>الصنف</th><th>الكمية</th><th>الوحدة</th></tr></thead>
+                    <tbody>
+                        {% for p in recent_productions %}
+                        <tr>
+                            <td>{{ p.production_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ p.crop.name }}</td>
+                            <td>{{ "%.2f"|format(p.quantity) }}</td>
+                            <td>{{ p.unit }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">آخر استهلاك للأصناف</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>التاريخ</th><th>الصنف</th><th>المادة</th><th>الكمية</th></tr></thead>
+                    <tbody>
+                        {% for c in recent_crop_consumptions %}
+                        <tr>
+                            <td>{{ c.consumption_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ c.crop.name }}</td>
+                            <td>{{ c.inventory_item.name }}</td>
+                            <td>{{ "%.2f"|format(c.quantity_used) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

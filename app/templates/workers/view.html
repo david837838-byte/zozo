@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}بيانات العامل - {{ worker.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-9">
+        <h1>{{ worker.name }}</h1>
+        <p class="text-muted">
+            {% if worker.is_monthly %}
+                عامل شهري
+            {% else %}
+                عامل بالساعة ({{ worker.hourly_rate }} $/ساعة)
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-3">
+        <a href="{{ url_for('workers.add_work_hours', worker_id=worker.id) }}" class="btn btn-primary me-2">
+            <i class="bi bi-plus-circle"></i> إضافة ساعات
+        </a>
+        <a href="{{ url_for('workers.add_motor_log', worker_id=worker.id) }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> تسجيل محرك
+        </a>
+        <a href="{{ url_for('workers.add_attendance', worker_id=worker.id) }}" class="btn btn-warning mt-2 me-2">
+            <i class="fas fa-check-square"></i> تسجيل حضور
+        </a>
+        <a href="{{ url_for('workers.worker_salary_report', worker_id=worker.id) }}" class="btn btn-info mt-2">
+            <i class="fas fa-file-pdf"></i> تقرير الراتب
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">معلومات الاتصال</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>الهاتف:</strong> {{ worker.phone or 'غير مسجل' }}</p>
+                <p><strong>البريد:</strong> {{ worker.email or 'غير مسجل' }}</p>
+                <p><strong>موقع العمل:</strong> {{ worker.work_location or 'غير محدد' }}</p>
+                <p><strong>الحالة:</strong> {% if worker.is_active %}<span class="badge bg-success">نشط</span>{% else %}<span class="badge bg-danger">معطل</span>{% endif %}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">ملخص الراتب</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <p class="text-muted">إجمالي الساعات</p>
+                        <h3>{{ total_hours|round(1) }}</h3>
+                    </div>
+                    <div class="col-6">
+                        <p class="text-muted">الراتب المتوقع</p>
+                        <h3>
+                            {% if worker.is_monthly %}
+                                {{ worker.monthly_salary|round(0) }}
+                            {% else %}
+                                {{ (total_hours * worker.hourly_rate)|round(0) }}
+                            {% endif %}
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4 border-primary">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">ربط الدفعات مع المحاسبة (سلفة / دفعة على الحساب)</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('workers.add_worker_payment', worker_id=worker.id) }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">نوع الدفعة</label>
+                    <select name="payment_kind" class="form-select" required>
+                        <option value="">-- اختر --</option>
+                        <option value="loan">سلفة</option>
+                        <option value="advance">دفعة على الحساب</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">المبلغ</label>
+                    <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">التاريخ</label>
+                    <input type="date" name="transaction_date" class="form-control" value="{{ today_date }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> تسجيل وربط
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">البيان (اختياري)</label>
+                    <input type="text" name="description" class="form-control" placeholder="مثال: سلفة تشغيل هذا الأسبوع">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">ملاحظات (اختياري)</label>
+                    <input type="text" name="notes" class="form-control" placeholder="أي ملاحظة إضافية">
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="card-footer bg-light">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <small class="text-muted d-block">إجمالي السلف</small>
+                <strong class="text-warning">{{ "%.2f"|format(total_worker_loans or 0) }} $</strong>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted d-block">إجمالي الدفعات على الحساب</small>
+                <strong class="text-info">{{ "%.2f"|format(total_worker_advances or 0) }} $</strong>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted d-block">إجمالي المصروفات المرتبطة بالعامل</small>
+                <strong class="text-danger">{{ "%.2f"|format(total_worker_payments or 0) }} $</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">سجل الدفعات المرتبط بالمحاسبة</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>التاريخ</th>
+                    <th>النوع</th>
+                    <th>البيان</th>
+                    <th>المعاملة</th>
+                    <th>المبلغ</th>
+                    <th>الفئة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in payment_rows %}
+                <tr>
+                    <td>{{ row.transaction.transaction_date }}</td>
+                    <td>{{ row.kind_label }}</td>
+                    <td>{{ row.transaction.description }}</td>
+                    <td>
+                        {% if row.transaction.transaction_type == 'دخل' %}
+                            <span class="badge bg-success">دخل</span>
+                        {% else %}
+                            <span class="badge bg-danger">مصروف</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ "%.2f"|format(row.transaction.amount or 0) }}</td>
+                    <td>{{ row.transaction.category.name if row.transaction.category else '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted p-4">لا توجد قيود محاسبية مرتبطة بهذا العامل</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">سجل ساعات العمل</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>التاريخ</th>
+                    <th>الوردية</th>
+                    <th>الموقع</th>
+                    <th>الساعات</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in work_logs %}
+                <tr>
+                    <td>{{ log.work_date }}</td>
+                    <td>{{ log.shift_type }}</td>
+                    <td>{{ log.location }}</td>
+                    <td>{{ log.hours }}</td>
+                    <td>{{ log.notes }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted p-4">لا توجد ساعات مسجلة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">سجل ساعات المحرك</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>اسم المحرك</th>
+                    <th>الساعات</th>
+                    <th>سعر الصرف</th>
+                    <th>إجمالي المازوت</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for motor in motor_logs %}
+                <tr>
+                    <td>{{ motor.motor_name }}</td>
+                    <td>{{ motor.total_hours|round(1) }}</td>
+                    <td>{{ motor.diesel_price_per_hour }}</td>
+                    <td>{{ motor.total_diesel_cost|round(2) }}</td>
+                    <td>{{ motor.notes }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted p-4">لا توجد محركات مسجلة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

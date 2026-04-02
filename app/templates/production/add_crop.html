@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة صنف جديد{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>
+            <i class="fas fa-seedling"></i> إضافة صنف جديد
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('production.crops') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> العودة
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-plus-circle"></i> بيانات الصنف الجديد
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" class="needs-validation">
+            <!-- بيانات أساسية -->
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    <i class="fas fa-info-circle"></i> البيانات الأساسية
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">
+                            <strong>اسم الصنف</strong>
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" required 
+                               placeholder="مثلاً: الطماطم، التفاح، الخيار...">
+                        <small class="text-muted">أدخل اسماً واضحاً وسهل التذكر</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="category" class="form-label">
+                            <strong>النوع</strong>
+                            <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="category" name="category" required onchange="updateCategoryIcon()">
+                            <option value="" selected>-- اختر النوع --</option>
+                            <option value="فواكه">🍎 فواكه</option>
+                            <option value="خضروات">🥕 خضروات</option>
+                        </select>
+                        <small class="text-muted">حسّن تصنيف الأصناف</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="variety" class="form-label">
+                            <strong>الصنف/النوعية</strong>
+                        </label>
+                        <input type="text" class="form-control" id="variety" name="variety" 
+                               placeholder="مثلاً: أحمر، أصفر، محلي، مستورد...">
+                        <small class="text-muted">تحديد دقيق للصنف (اختياري)</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="location" class="form-label">
+                            <strong>موقع الزراعة</strong>
+                        </label>
+                        <input type="text" class="form-control" id="location" name="location" 
+                               placeholder="مثلاً: البيت الزجاجي 1، الحقل الشرقي...">
+                        <small class="text-muted">حدد الموقع الجغرافي في المزرعة</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- التواريخ -->
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    <i class="fas fa-calendar-alt"></i> التواريخ المهمة
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="planting_date" class="form-label">
+                            <strong>تاريخ الزراعة</strong>
+                        </label>
+                        <input type="date" class="form-control" id="planting_date" name="planting_date">
+                        <small class="text-muted">متى تم زراعة هذا الصنف</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="expected_harvest_date" class="form-label">
+                            <strong>تاريخ الحصاد المتوقع</strong>
+                        </label>
+                        <input type="date" class="form-control" id="expected_harvest_date" name="expected_harvest_date">
+                        <small class="text-muted">التاريخ المتوقع للحصاد</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- المساحة والحجم -->
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    <i class="fas fa-ruler"></i> المساحة والحجم
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="area" class="form-label">
+                            <strong>المساحة المزروعة</strong>
+                        </label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="area" name="area" step="0.01" min="0">
+                            <span class="input-group-text">متر مربع</span>
+                        </div>
+                        <small class="text-muted">أدخل المساحة الفعلية</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الأزرار -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-save"></i> إضافة الصنف
+                </button>
+                <a href="{{ url_for('production.crops') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- معلومات مفيدة -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb"></i> نصائح عملية
+                </h6>
+            </div>
+            <div class="card-body small">
+                <ul class="mb-0">
+                    <li>استخدم أسماء واضحة وسهلة لتمييز الأصناف</li>
+                    <li>سجل تاريخ الزراعة بدقة لتتبع دورة الحصاد</li>
+                    <li>حدد الموقع لتنظيم العمل في المزرعة</li>
+                    <li>أضف المساحة لحساب الإنتاجية</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-cubes"></i> أمثلة
+                </h6>
+            </div>
+            <div class="card-body small">
+                <strong>للفواكه:</strong>
+                <ul class="mb-2">
+                    <li>التفاح الأحمر - البيت الزجاجي</li>
+                    <li>العنب الأسود - الحقل الجنوبي</li>
+                </ul>
+                <strong>للخضروات:</strong>
+                <ul class="mb-0">
+                    <li>الطماطم الشقة - البيت الزجاجي 2</li>
+                    <li>الخيار المحلي - الحقل الشرقي</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateCategoryIcon() {
+    const category = document.getElementById('category').value;
+    // يمكن إضافة منطق إضافي هنا لتحديث الأيقونات
+}
+
+// تعيين تاريخ اليوم تلقائياً لتاريخ الزراعة
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0];
+    document.getElementById('planting_date').value = dateString;
+});
+</script>
+{% endblock %}

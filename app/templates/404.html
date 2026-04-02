@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}خطأ 404 - الصفحة غير موجودة{% endblock %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <h1 class="display-1">404</h1>
+    <h2>الصفحة غير موجودة</h2>
+    <p class="lead">عذراً، الصفحة التي تبحث عنها غير موجودة أو تم حذفها.</p>
+    <a href="{{ url_for('home.index') }}" class="btn btn-primary">العودة إلى الصفحة الرئيسية</a>
+</div>
+{% endblock %}

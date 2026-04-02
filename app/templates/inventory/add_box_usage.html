@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل استخدام - {{ box.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تسجيل استخدام - {{ box.name }}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="box_name" class="form-label">اسم الشراحة/الكرتين</label>
+                    <input type="text" class="form-control" id="box_name" disabled 
+                           value="{{ box.name }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="box_type_display" class="form-label">النوع</label>
+                    <input type="text" class="form-control" id="box_type_display" disabled 
+                           value="{{ box.box_type }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="cost_per_box" class="form-label">التكلفة الواحدة</label>
+                    <input type="text" class="form-control" id="cost_per_box" disabled 
+                           value="{{ box.cost_per_box }} $">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="usage_date" class="form-label">تاريخ الاستخدام</label>
+                    <input type="date" class="form-control" id="usage_date" name="usage_date" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="quantity_used" class="form-label">الكمية المستخدمة</label>
+                    <input type="number" class="form-control" id="quantity_used" name="quantity_used" 
+                           required min="1" onchange="updateTotalCost()">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="total_cost" class="form-label">التكلفة الكلية ($)</label>
+                    <input type="text" class="form-control" id="total_cost" disabled 
+                           value="0">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="purpose" class="form-label">الغرض من الاستخدام</label>
+                    <input type="text" class="form-control" id="purpose" name="purpose" 
+                           placeholder="مثال: تعبئة المنتجات">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> تسجيل الاستخدام
+                </button>
+                <a href="{{ url_for('inventory.boxes') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const costPerBox = {{ box.cost_per_box }};
+
+function updateTotalCost() {
+    const quantity = parseInt(document.getElementById('quantity_used').value) || 0;
+    const totalCost = quantity * costPerBox;
+    document.getElementById('total_cost').value = totalCost.toFixed(2);
+}
+
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('usage_date').value = today;
+});
+</script>
+{% endblock %}

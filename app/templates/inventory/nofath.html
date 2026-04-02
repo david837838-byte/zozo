@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}الأدوية التي نفذت - المخزون{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-9">
+        <h1>
+            <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i> 
+            الأدوية والمستلزمات التي نفذت من المخزون
+        </h1>
+    </div>
+    <div class="col-3">
+        <a href="{{ url_for('inventory.index') }}" class="btn btn-primary float-end">
+            <i class="fas fa-list"></i> إلى قائمة المخزون
+        </a>
+    </div>
+</div>
+
+<!-- تنبيه إذا كانت القائمة فارغة -->
+{% if not items %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="fas fa-check-circle"></i>
+    <strong>ممتاز!</strong> جميع الأدوية والمستلزمات متاحة في المخزون. لا توجد عناصر نفذت.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% else %}
+<!-- تنبيه بوجود عناصر نفذت -->
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="fas fa-exclamation-triangle"></i>
+    <strong>تنبيه!</strong> هناك <strong>{{ items|length }}</strong> صنف من الأدوية والمستلزمات قد نفذ من المخزون.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<!-- الأدوية التي نفذت -->
+<div class="row">
+    {% for item in items %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 border-danger shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <div class="row align-items-center">
+                    <div class="col-9">
+                        <h5 class="mb-0">
+                            <i class="fas fa-pill"></i> {{ item.name }}
+                        </h5>
+                    </div>
+                    <div class="col-3 text-end">
+                        <span class="badge bg-light text-danger" style="font-size: 12px;">
+                            <i class="fas fa-times-circle"></i> نفذ
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="text-muted small d-block mb-1">
+                            <i class="fas fa-tag"></i> النوع
+                        </label>
+                        <p class="mb-0">
+                            {% if item.category == 'أدوية' %}
+                                <span class="badge bg-primary">أدوية</span>
+                            {% elif item.category == 'أسمدة' %}
+                                <span class="badge bg-success">أسمدة</span>
+                            {% elif item.category == 'مشتقات نفطية' %}
+                                <span class="badge bg-warning text-dark">مشتقات نفطية</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ item.category }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <label class="text-muted small d-block mb-1">
+                            <i class="fas fa-weight"></i> الكمية
+                        </label>
+                        <p class="mb-0">
+                            <strong class="text-danger">{{ item.quantity }} {{ item.unit }}</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="text-muted small d-block mb-1">
+                            <i class="fas fa-dollar-sign"></i> السعر
+                        </label>
+                        <p class="mb-0"><strong>{{ item.purchase_price }}</strong></p>
+                    </div>
+                    <div class="col-6">
+                        <label class="text-muted small d-block mb-1">
+                            <i class="fas fa-building"></i> الموردة
+                        </label>
+                        <p class="mb-0"><small>{{ item.supplier or '—' }}</small></p>
+                    </div>
+                </div>
+
+                {% if item.expiry_date %}
+                <div class="mb-3">
+                    <label class="text-muted small d-block mb-1">
+                        <i class="fas fa-calendar-alt"></i> تاريخ الانتهاء
+                    </label>
+                    <p class="mb-0">
+                        <strong>{{ item.expiry_date.strftime('%d-%m-%Y') }}</strong>
+                    </p>
+                </div>
+                {% endif %}
+
+                {% if item.notes %}
+                <div class="mb-3">
+                    <label class="text-muted small d-block mb-1">
+                        <i class="fas fa-note-sticky"></i> ملاحظات
+                    </label>
+                    <p class="mb-0"><small>{{ item.notes }}</small></p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-light">
+                <div class="row">
+                    <div class="col-4">
+                        <a href="{{ url_for('inventory.add_inventory_purchase', item_id=item.id) }}" 
+                           class="btn btn-sm btn-success w-100" 
+                           title="شراء جديد">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="d-none d-lg-inline">شراء</span>
+                        </a>
+                    </div>
+                    <div class="col-4">
+                        <a href="{{ url_for('inventory.add_transaction', item_id=item.id) }}" 
+                           class="btn btn-sm btn-info w-100" 
+                           title="تحديث الكمية">
+                            <i class="fas fa-plus-circle"></i>
+                            <span class="d-none d-lg-inline">تحديث</span>
+                        </a>
+                    </div>
+                    <div class="col-4">
+                        {% if current_user.is_admin %}
+                        <button type="button" 
+                                class="btn btn-sm btn-danger w-100" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#deleteModal{{ item.id }}"
+                                title="حذف">
+                            <i class="fas fa-trash"></i>
+                            <span class="d-none d-lg-inline">حذف</span>
+                        </button>
+                        {% else %}
+                        <a href="{{ url_for('inventory.edit_item', item_id=item.id) }}" 
+                           class="btn btn-sm btn-warning w-100" 
+                           title="تعديل">
+                            <i class="fas fa-edit"></i>
+                            <span class="d-none d-lg-inline">تعديل</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- إحصائيات سريعة -->
+{% if items %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar"></i> إحصائيات الأدوية التي نفذت
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h3 class="text-danger">{{ items|length }}</h3>
+                        <p class="text-muted">اصناف نفذت</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="text-primary">
+                            {% set medicines = [] %}
+                            {% for item in items %}
+                                {% if item.category == 'أدوية' %}
+                                    {% set _ = medicines.append(item) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ medicines|length }}
+                        </h3>
+                        <p class="text-muted">أدوية</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="text-success">
+                            {% set fertilizers = [] %}
+                            {% for item in items %}
+                                {% if item.category == 'أسمدة' %}
+                                    {% set _ = fertilizers.append(item) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ fertilizers|length }}
+                        </h3>
+                        <p class="text-muted">أسمدة</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="text-warning">
+                            {% set fuel = [] %}
+                            {% for item in items %}
+                                {% if item.category == 'مشتقات نفطية' %}
+                                    {% set _ = fuel.append(item) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ fuel|length }}
+                        </h3>
+                        <p class="text-muted">مشتقات نفطية</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- معلومات إضافية -->
+<div class="alert alert-info mt-4" role="alert">
+    <i class="fas fa-info-circle"></i>
+    <strong>ملاحظة:</strong> هذا القسم يعرض جميع الأدوية والمستلزمات التي انتهت من المخزون (الكمية = 0 أو أقل).
+    يمكنك شراء اصناف جديدة أو تحديث الكمية مباشرة من هنا.
+</div>
+
+<!-- Modals for Delete Confirmation -->
+{% for item in items %}
+<div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ item.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel{{ item.id }}">
+                    <i class="bi bi-exclamation-triangle"></i> تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">
+                    هل أنت متأكد من حذف <strong style="color: #dc3545;">{{ item.name }}</strong>؟
+                </p>
+                <small class="text-muted d-block mt-2">
+                    <i class="bi bi-info-circle"></i>
+                    سيتم حذف جميع السجلات المرتبطة بهذا الصنف أيضاً.
+                </small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </button>
+                <form method="POST" action="{{ url_for('inventory.delete_item', item_id=item.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> حذف نهائياً
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

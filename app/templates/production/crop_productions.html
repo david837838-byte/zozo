@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}إنتاج الصنف - {{ crop.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>
+                <i class="fas fa-cubes"></i> إنتاج الصنف
+            </h1>
+            <h3 class="text-success">{{ crop.name }}
+                {% if crop.variety %}
+                    <small class="text-muted">({{ crop.variety }})</small>
+                {% endif %}
+            </h3>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('production.add_production') }}" class="btn btn-success btn-sm">
+                <i class="fas fa-plus-circle"></i> إضافة إنتاج
+            </a>
+            <a href="{{ url_for('production.index') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> العودة
+            </a>
+        </div>
+    </div>
+
+    <!-- معلومات الصنف -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">إجمالي الإنتاج</h5>
+                    <h3 class="text-success">{{ (crop_productions|map(attribute='quantity')|sum)|round(2) }}</h3>
+                    <small class="text-muted">وحدة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">عدد السجلات</h5>
+                    <h3 class="text-info">{{ crop_productions|length }}</h3>
+                    <small class="text-muted">سجل إنتاج</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">تاريخ الزراعة</h5>
+                    <h4>
+                        {% if crop.planting_date %}
+                            {{ crop.planting_date.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </h4>
+                    <small class="text-muted">هـ</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">المساحة</h5>
+                    <h4>
+                        {% if crop.area %}
+                            {{ crop.area }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </h4>
+                    <small class="text-muted">{{ crop.unit or 'متر مربع' }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الإنتاج -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-table"></i> سجلات الإنتاج
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if crop_productions %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-light">
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الكمية</th>
+                                <th>الوحدة</th>
+                                <th>الجودة</th>
+                                <th>الملاحظات</th>
+                                <th style="width: 120px;">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prod in crop_productions %}
+                            <tr>
+                                <td class="fw-bold">{{ prod.production_date.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ prod.quantity }}</td>
+                                <td><span class="badge bg-secondary">{{ prod.unit }}</span></td>
+                                <td>
+                                    {% if prod.quality %}
+                                        <span class="badge {% if prod.quality == 'ممتازة' %}bg-success{% elif prod.quality == 'جيدة' %}bg-info{% elif prod.quality == 'متوسطة' %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ prod.quality }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if prod.notes %}
+                                        <small>{{ prod.notes[:50] }}{% if prod.notes|length > 50 %}...{% endif %}</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('production.edit_production', production_id=prod.id) }}" 
+                                           class="btn btn-outline-warning" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('production.delete_production', production_id=prod.id) }}" 
+                                              style="display:inline;" onsubmit="return confirm('هل أنت متأكد؟');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                            <button type="submit" class="btn btn-outline-danger" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> لا توجد سجلات إنتاج لهذا الصنف حتى الآن
+                    <a href="{{ url_for('production.add_production') }}" class="alert-link">ابدأ بإضافة إنتاج جديد</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

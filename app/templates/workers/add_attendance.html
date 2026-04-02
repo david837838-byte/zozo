@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل حضور{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2>تسجيل حضور - {{ worker.name }}</h2>
+            
+            <form method="POST" class="mt-4">
+                <div class="card">
+                    <div class="card-body">
+                        <!-- معلومات العامل -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">اسم العامل</label>
+                                <input type="text" class="form-control" value="{{ worker.name }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">التصنيف</label>
+                                <input type="text" class="form-control" 
+                                       value="{% if worker.is_monthly %}عامل شهري{% else %}عامل ساعي{% endif %}" disabled>
+                            </div>
+                        </div>
+
+                        <!-- تاريخ الحضور -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="attendance_date" class="form-label">تاريخ الحضور <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="attendance_date" 
+                                       name="attendance_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="">-- اختر الحالة --</option>
+                                    <option value="حاضر">حاضر</option>
+                                    <option value="غياب">غياب</option>
+                                    <option value="مرض">مرض</option>
+                                    <option value="إجازة">إجازة</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- الساعات المعملة -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="hours_worked" class="form-label">الساعات المعملة</label>
+                                <input type="number" step="0.5" class="form-control" id="hours_worked" 
+                                       name="hours_worked" value="8" min="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label>
+                                    <input type="checkbox" id="is_present" name="is_present" checked>
+                                    الحضور الفعلي
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- الملاحظات -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label for="notes" class="form-label">ملاحظات</label>
+                                <textarea class="form-control" id="notes" name="notes" 
+                                          rows="3" placeholder="أي ملاحظات إضافية"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check"></i> حفظ
+                                </button>
+                                <a href="{{ url_for('workers.attendance') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> إلغاء
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تعيين اليوم الحالي كقيمة افتراضية
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('attendance_date').value = today;
+});
+</script>
+{% endblock %}

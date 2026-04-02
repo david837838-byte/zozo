@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل المحرك{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- رأس الصفحة -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('motors.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <h1 class="h3 mb-0 ms-3">
+                    <i class="fas fa-edit text-warning"></i> تعديل المحرك: {{ motor.name }}
+                </h1>
+            </div>
+
+            <!-- النموذج -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation">
+                        <!-- معلومات المحرك الأساسية -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle text-info"></i> معلومات المحرك
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">اسم المحرك <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ motor.name }}" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="motor_type" class="form-label">نوع المحرك <span class="text-danger">*</span></label>
+                                <select class="form-select" id="motor_type" name="motor_type" required>
+                                    <option value="ديزل" {% if motor.motor_type == 'ديزل' %}selected{% endif %}>ديزل</option>
+                                    <option value="بنزين" {% if motor.motor_type == 'بنزين' %}selected{% endif %}>بنزين</option>
+                                    <option value="كهربائي" {% if motor.motor_type == 'كهربائي' %}selected{% endif %}>كهربائي</option>
+                                    <option value="هجين" {% if motor.motor_type == 'هجين' %}selected{% endif %}>هجين</option>
+                                    <option value="غاز" {% if motor.motor_type == 'غاز' %}selected{% endif %}>غاز</option>
+                                    <option value="أخرى" {% if motor.motor_type == 'أخرى' %}selected{% endif %}>أخرى</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="model" class="form-label">موديل المحرك</label>
+                                <input type="text" class="form-control" id="model" name="model" value="{{ motor.model or '' }}">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="serial_number" class="form-label">رقم المحرك التسلسلي</label>
+                                <input type="text" class="form-control" id="serial_number" name="serial_number" value="{{ motor.serial_number or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="capacity" class="form-label">القوة (HP)</label>
+                                <input type="number" class="form-control" id="capacity" name="capacity" step="0.5" value="{{ motor.capacity or '' }}">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="purchase_date" class="form-label">تاريخ الشراء</label>
+                                <input type="date" class="form-control" id="purchase_date" name="purchase_date" 
+                                       value="{% if motor.purchase_date %}{{ motor.purchase_date.strftime('%Y-%m-%d') }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location" class="form-label">موقع المحرك</label>
+                            <input type="text" class="form-control" id="location" name="location" value="{{ motor.location or '' }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">الوصف</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ motor.description or '' }}</textarea>
+                        </div>
+
+                        <!-- الحالة -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if motor.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    <i class="fas fa-check-circle text-success"></i> المحرك نشط
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- معلومات إضافية -->
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-clock"></i> آخر تحديث: {{ motor.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> حفظ التغييرات
+                            </button>
+                            <a href="{{ url_for('motors.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                            <a href="{{ url_for('motors.view_motor', motor_id=motor.id) }}" class="btn btn-outline-info ms-auto">
+                                <i class="fas fa-eye"></i> عرض التفاصيل الكاملة
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ساعات التشغيل لكل شخص -->
+            {% if operator_stats or usage_count > 0 %}
+            <div class="card mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-clock"></i> ساعات التشغيل حسب المشغل (النظرة العامة)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if operator_stats %}
+                        <div class="row">
+                            {% for stat in operator_stats[:5] %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ stat.operator_name }}</h6>
+                                        <p class="mb-2">
+                                            <strong class="text-primary">{{ "%.2f"|format(stat.total_hours or 0) }} ساعة</strong>
+                                        </p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-list"></i> {{ stat.usage_count }} مرة استخدام
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if operator_stats|length > 5 %}
+                        <p class="text-muted small mt-2">
+                            <i class="fas fa-info-circle"></i> يوجد {{ operator_stats|length - 5 }} مشغل آخر إضافي. 
+                            <a href="{{ url_for('motors.view_motor', motor_id=motor.id) }}">اعرض جميع المشغلين</a>
+                        </p>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle"></i> لا توجد تسجيلات استخدام لهذا المحرك بعد
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .section-title {
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+</style>
+{% endblock %}

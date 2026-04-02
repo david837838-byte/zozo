@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: farm-management
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    environment:
+      FLASK_APP: run.py
+      FLASK_ENV: development
+    command: python run.py
+    depends_on:
+      - db
+  
+  db:
+    image: postgres:13
+    container_name: farm-db
+    environment:
+      POSTGRES_DB: farm_management
+      POSTGRES_USER: farm_user
+      POSTGRES_PASSWORD: farm_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

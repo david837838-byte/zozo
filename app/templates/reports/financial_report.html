@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}التقرير المالي الشامل{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>التقرير المالي الشامل</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <p class="card-text">إجمالي الدخل</p>
+                <h3 class="mb-0">{{ total_income|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <p class="card-text">إجمالي المصروفات</p>
+                <h3 class="mb-0">{{ total_expenses|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if net >= 0 %}bg-info{% else %}bg-warning{% endif %} text-white">
+            <div class="card-body">
+                <p class="card-text">الفائض/الخسارة</p>
+                <h3 class="mb-0">{{ net|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">المصروفات حسب الفئات</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for category, amount in by_category.items() %}
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>{{ category }}</span>
+                    <strong>{{ amount|round(0) }} $</strong>
+                </div>
+                {% else %}
+                <div class="list-group-item text-center text-muted">لا توجد مصروفات</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">إحصائيات</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>عدد معاملات الدخل:</strong> 
+                    <span class="badge bg-success">{{ income_count }}</span>
+                </p>
+                <p class="mb-2">
+                    <strong>عدد معاملات المصروفات:</strong> 
+                    <span class="badge bg-danger">{{ expense_count }}</span>
+                </p>
+                <p class="mb-2">
+                    <strong>إجمالي المعاملات:</strong> 
+                    <span class="badge bg-primary">{{ transactions | length }}</span>
+                </p>
+                {% if total_expenses > 0 %}
+                <p class="mb-0">
+                    <strong>نسبة المصروفات من الدخل:</strong> 
+                    <span class="badge bg-secondary">{{ ((total_expenses / total_income * 100) | round(1)) if total_income > 0 else 0 }}%</span>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">تفاصيل المعاملات</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>التاريخ</th>
+                    <th>البيان</th>
+                    <th>النوع</th>
+                    <th>الفئة</th>
+                    <th>المبلغ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.transaction_date }}</td>
+                    <td>{{ transaction.description }}</td>
+                    <td>
+                        {% if transaction.display_transaction_type == 'دخل' %}
+                            <span class="badge bg-success">دخل</span>
+                        {% else %}
+                            <span class="badge bg-danger">مصروف</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ transaction.category.name if transaction.category else '-' }}</td>
+                    <td>{{ transaction.amount }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted p-4">لا توجد معاملات</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> عودة إلى التقارير
+    </a>
+</div>
+{% endblock %}

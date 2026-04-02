@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة ساعات عمل{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>إضافة ساعات عمل لـ {{ worker.name }}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="work_date" class="form-label">تاريخ العمل</label>
+                    <input type="date" class="form-control" id="work_date" name="work_date" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="hours" class="form-label">عدد الساعات</label>
+                    <input type="number" class="form-control" id="hours" name="hours" step="0.5" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="shift_type" class="form-label">نوع الوردية</label>
+                    <select class="form-select" id="shift_type" name="shift_type">
+                        <option selected>-- اختر --</option>
+                        <option value="صباحي">صباحي</option>
+                        <option value="بعد ظهر">بعد ظهر</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="location" class="form-label">موقع العمل</label>
+                    <select class="form-select" id="location" name="location">
+                        <option selected>-- اختر --</option>
+                        <option value="جبل">جبل</option>
+                        <option value="سهل">سهل</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> إضافة الساعات
+                </button>
+                <a href="{{ url_for('workers.view_worker', worker_id=worker.id) }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

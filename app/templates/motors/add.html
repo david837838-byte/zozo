@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة محرك جديد{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- رأس الصفحة -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('motors.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <h1 class="h3 mb-0 ms-3">
+                    <i class="fas fa-plus-circle text-primary"></i> إضافة محرك جديد
+                </h1>
+            </div>
+
+            <!-- النموذج -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation">
+                        <!-- معلومات المحرك الأساسية -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle text-info"></i> معلومات المحرك
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">اسم المحرك <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                                <small class="form-text text-muted">مثال: محرك المضخة الرئيسي</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="motor_type" class="form-label">نوع المحرك <span class="text-danger">*</span></label>
+                                <select class="form-select" id="motor_type" name="motor_type" required>
+                                    <option value="">-- اختر النوع --</option>
+                                    <option value="ديزل">ديزل</option>
+                                    <option value="بنزين">بنزين</option>
+                                    <option value="كهربائي">كهربائي</option>
+                                    <option value="هجين">هجين</option>
+                                    <option value="غاز">غاز</option>
+                                    <option value="أخرى">أخرى</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="model" class="form-label">موديل المحرك</label>
+                                <input type="text" class="form-control" id="model" name="model" placeholder="مثال: Honda GX200">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="serial_number" class="form-label">رقم المحرك التسلسلي</label>
+                                <input type="text" class="form-control" id="serial_number" name="serial_number">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="capacity" class="form-label">القوة (HP)</label>
+                                <input type="number" class="form-control" id="capacity" name="capacity" step="0.5" placeholder="مثال: 5.5">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="purchase_date" class="form-label">تاريخ الشراء</label>
+                                <input type="date" class="form-control" id="purchase_date" name="purchase_date">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location" class="form-label">موقع المحرك</label>
+                            <input type="text" class="form-control" id="location" name="location" placeholder="مثال: البيت الزجاجي - الشرق">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">الوصف</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="معلومات إضافية عن المحرك..."></textarea>
+                        </div>
+
+                        <!-- الحالة -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                <label class="form-check-label" for="is_active">
+                                    <i class="fas fa-check-circle text-success"></i> المحرك نشط
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> حفظ المحرك
+                            </button>
+                            <a href="{{ url_for('motors.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .section-title {
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+</style>
+{% endblock %}

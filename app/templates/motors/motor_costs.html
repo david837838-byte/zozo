@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}تكاليف المحركات{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>تكاليف المحركات</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('motors.motor_costs_report') }}" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i> تقرير سنوي
+            </a>
+            <a href="{{ url_for('motors.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">إجمالي التكاليف</h6>
+                    <h3>${{ "%.2f"|format(total_cost) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">عدد العمليات</h6>
+                    <h3>{{ costs|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">متوسط التكلفة</h6>
+                    <h3>
+                        {% if costs|length > 0 %}
+                            ${{ "%.2f"|format(total_cost / costs|length) }}
+                        {% else %}
+                            $0.00
+                        {% endif %}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- By Type Summary -->
+    {% if by_type %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <h4>ملخص حسب نوع التكلفة</h4>
+                <div class="row">
+                    {% for cost_type, data in by_type.items() %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        {% if cost_type == 'fuel' %}
+                                            <i class="fas fa-gas-pump"></i> الوقود
+                                        {% elif cost_type == 'maintenance' %}
+                                            <i class="fas fa-wrench"></i> الصيانة
+                                        {% else %}
+                                            {{ cost_type }}
+                                        {% endif %}
+                                    </h5>
+                                    <p class="mb-1">الكمية: <strong>{{ "%.2f"|format(data.quantity) }}</strong></p>
+                                    <p class="mb-0">الإجمالي: <strong>${{ "%.2f"|format(data.total_cost) }}</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if costs %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>المحرك</th>
+                        <th>نوع التكلفة</th>
+                        <th>الكمية</th>
+                        <th>سعر الوحدة</th>
+                        <th>إجمالي التكلفة</th>
+                        <th>المورد</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cost in costs %}
+                        <tr>
+                            <td>{{ cost.cost_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ cost.motor.name }}</td>
+                            <td>
+                                {% if cost.cost_type == 'fuel' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-gas-pump"></i> وقود
+                                    </span>
+                                {% elif cost.cost_type == 'maintenance' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-wrench"></i> صيانة
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ cost.cost_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ cost.quantity }}</td>
+                            <td>${{ "%.2f"|format(cost.unit_price) }}</td>
+                            <td>
+                                <strong>${{ "%.2f"|format(cost.total_cost) }}</strong>
+                            </td>
+                            <td>{{ cost.supplier or '-' }}</td>
+                            <td>
+                                <a href="{{ url_for('motors.edit_motor_cost', cost_id=cost.id) }}" 
+                                   class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('motors.delete_motor_cost', cost_id=cost.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle"></i> لا توجد تكاليف مسجلة
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

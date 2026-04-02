@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل تسجيل استخدام المحرك{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- رأس الصفحة -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('motors.usage_logs') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <h1 class="h3 mb-0 ms-3">
+                    <i class="fas fa-edit text-warning"></i> تعديل التسجيل
+                </h1>
+            </div>
+
+            <!-- النموذج -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation">
+                        <!-- اختيار المحرك -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-cog text-info"></i> بيانات المحرك
+                            </h5>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="motor_id" class="form-label">المحرك <span class="text-danger">*</span></label>
+                            <select class="form-select" id="motor_id" name="motor_id" required>
+                                {% for motor in motors %}
+                                <option value="{{ motor.id }}" {% if usage.motor_id == motor.id %}selected{% endif %}>
+                                    {{ motor.name }} - {{ motor.motor_type }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- معلومات ساعات الاستخدام -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-clock text-warning"></i> ساعات الاستخدام
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_hours" class="form-label">ساعات البداية <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="start_hours" name="start_hours" 
+                                       step="0.1" value="{{ usage.start_hours }}" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="end_hours" class="form-label">ساعات النهاية <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="end_hours" name="end_hours" 
+                                       step="0.1" value="{{ usage.end_hours }}" required>
+                            </div>
+                        </div>
+
+                        <!-- معلومات المشغل -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-user text-success"></i> معلومات المشغل
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="operator_name" class="form-label">اسم المشغل <span class="text-danger">*</span></label>
+                                <select class="form-select" id="operator_name" name="operator_name" required>
+                                    <option value="">-- اختر اسم المشغل --</option>
+                                    {% for name in operator_names %}
+                                    <option value="{{ name }}" {% if usage.operator_name == name %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                    <option value="" disabled>─────────────</option>
+                                    <option value="new">+ إضافة مشغل جديد</option>
+                                </select>
+                                <input type="text" class="form-control mt-2" id="new_operator_name" name="new_operator_name" placeholder="أدخل اسم المشغل الجديد" style="display: none;">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="operator_phone" class="form-label">رقم الهاتف</label>
+                                <input type="tel" class="form-control" id="operator_phone" name="operator_phone" 
+                                       value="{{ usage.operator_phone or '' }}">
+                            </div>
+                        </div>
+
+                        <!-- معلومات الاستخدام -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle text-primary"></i> معلومات الاستخدام
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="usage_date" class="form-label">تاريخ الاستخدام</label>
+                                <input type="date" class="form-control" id="usage_date" name="usage_date" 
+                                       value="{{ usage.usage_date.strftime('%Y-%m-%d') }}">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label">مكان الاستخدام</label>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       value="{{ usage.location or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="usage_purpose" class="form-label">الغرض من الاستخدام</label>
+                            <input type="text" class="form-control" id="usage_purpose" name="usage_purpose" 
+                                   value="{{ usage.usage_purpose or '' }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2">{{ usage.notes or '' }}</textarea>
+                        </div>
+
+                        <!-- معلومات الوقود -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-gas-pump text-danger"></i> معلومات الوقود
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fuel_added" class="form-label">كمية الوقود المضافة (لتر)</label>
+                                <input type="number" class="form-control" id="fuel_added" name="fuel_added" 
+                                       step="0.1" value="{{ usage.fuel_added or '' }}">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="fuel_cost" class="form-label">تكلفة الوقود</label>
+                                <input type="number" class="form-control" id="fuel_cost" name="fuel_cost" 
+                                       step="0.01" value="{{ usage.fuel_cost or '' }}">
+                            </div>
+                        </div>
+
+                        <!-- معلومات إضافية -->
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-clock"></i> آخر تحديث: {{ usage.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> حفظ التغييرات
+                            </button>
+                            <a href="{{ url_for('motors.usage_logs') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// معالجة اختيار اسم المشغل
+document.getElementById('operator_name').addEventListener('change', function() {
+    const operatorSelect = document.getElementById('operator_name');
+    const newOperatorInput = document.getElementById('new_operator_name');
+    
+    if (operatorSelect.value === 'new') {
+        // إظهار حقل إدخال المشغل الجديد
+        newOperatorInput.style.display = 'block';
+        newOperatorInput.required = true;
+        newOperatorInput.focus();
+    } else {
+        // إخفاء حقل إدخال المشغل الجديد
+        newOperatorInput.style.display = 'none';
+        newOperatorInput.required = false;
+        newOperatorInput.value = '';
+    }
+});
+
+// معالجة النموذج عند الإرسال
+document.querySelector('form').addEventListener('submit', function(e) {
+    const operatorSelect = document.getElementById('operator_name');
+    const newOperatorInput = document.getElementById('new_operator_name');
+    
+    if (operatorSelect.value === 'new') {
+        if (!newOperatorInput.value.trim()) {
+            e.preventDefault();
+            alert('الرجاء إدخال اسم المشغل الجديد');
+            newOperatorInput.focus();
+            return false;
+        }
+        // تعيين قيمة الحقل المخفي من حقل الإدخال الجديد
+        operatorSelect.value = newOperatorInput.value.trim();
+    }
+});
+</script>
+
+<style>
+    .section-title {
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+</style>
+{% endblock %}

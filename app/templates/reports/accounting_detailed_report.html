@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير المحاسبة التفصيلي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">تقرير المحاسبة التفصيلي</h1>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm">العودة للتقارير</a>
+</div>
+
+{% include "reports/_report_filters_exports.html" %}
+
+<div class="row mb-4">
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي الدخل</small><h5 class="text-success">{{ "%.2f"|format(total_income) }}</h5></div></div></div>
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي المصروفات</small><h5 class="text-danger">{{ "%.2f"|format(total_expenses) }}</h5></div></div></div>
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>صافي الربح</small><h5 class="{% if net_profit >= 0 %}text-success{% else %}text-danger{% endif %}">{{ "%.2f"|format(net_profit) }}</h5></div></div></div>
+    <div class="col-md-3 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>عدد السجلات</small><h5>{{ transactions|length }}</h5></div></div></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">ملخص الأنواع</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>عدد سجلات الدخل:</strong> {{ income_count }}</p>
+                <p class="mb-0"><strong>عدد سجلات المصروف:</strong> {{ expense_count }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">المصروفات حسب المرجع</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>نوع المرجع</th><th>عدد السجلات</th><th>القيمة</th></tr></thead>
+                    <tbody>
+                        {% for row in expense_by_reference %}
+                        <tr>
+                            <td>{{ row.reference_type or 'غير محدد' }}</td>
+                            <td>{{ row.entries }}</td>
+                            <td>{{ "%.2f"|format(row.amount) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">المصروفات حسب الفئة</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>الفئة</th><th>عدد السجلات</th><th>إجمالي المصروف</th></tr></thead>
+            <tbody>
+                {% for row in expense_by_category %}
+                <tr><td>{{ row.name }}</td><td>{{ row.entries }}</td><td>{{ "%.2f"|format(row.amount) }}</td></tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">ملخص شهري (آخر 12 شهر)</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr><th>الشهر</th><th>الدخل</th><th>المصروف</th><th>الصافي</th></tr></thead>
+            <tbody>
+                {% for row in monthly_summary %}
+                <tr>
+                    <td>{{ row.month }}</td>
+                    <td>{{ "%.2f"|format(row.income or 0) }}</td>
+                    <td>{{ "%.2f"|format(row.expense or 0) }}</td>
+                    <td>{{ "%.2f"|format((row.income or 0) - (row.expense or 0)) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">آخر المعاملات</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>الفئة</th><th>القيمة</th></tr></thead>
+            <tbody>
+                {% for t in transactions[:60] %}
+                <tr>
+                    <td>{{ t.transaction_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ t.display_transaction_type }}</td>
+                    <td>{{ t.description }}</td>
+                    <td>{{ t.category.name if t.category else '-' }}</td>
+                    <td>{{ "%.2f"|format(t.amount) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted">لا توجد معاملات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

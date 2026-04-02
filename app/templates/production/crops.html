@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}الأصناف والمحاصيل{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>
+            <i class="fas fa-leaf"></i> الأصناف والمحاصيل
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('production.add_crop') }}" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i> إضافة صنف جديد
+        </a>
+        <a href="{{ url_for('production.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> العودة
+        </a>
+    </div>
+</div>
+
+<!-- الإحصائيات -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">إجمالي الأصناف</h5>
+                <h3 class="text-success">{{ crops|length }}</h3>
+                <small class="text-muted">صنف مسجل</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">الأصناف النشطة</h5>
+                <h3 class="text-info">{{ crops|selectattr('is_active', 'true')|list|length }}</h3>
+                <small class="text-muted">قيد الإنتاج</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">الأصناف الموقوفة</h5>
+                <h3 class="text-warning">{{ crops|selectattr('is_active', 'false')|list|length }}</h3>
+                <small class="text-muted">متوقفة عن الإنتاج</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- جدول الأصناف -->
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-table"></i> قائمة الأصناف
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if crops %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="20%">اسم الصنف</th>
+                        <th width="12%">النوع</th>
+                        <th width="15%">الصنف/النوع</th>
+                        <th width="15%">الموقع</th>
+                        <th width="10%">المساحة</th>
+                        <th width="13%">تاريخ الزراعة</th>
+                        <th width="10%">الحالة</th>
+                        <th class="text-center" width="15%">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for crop in crops|sort(attribute='name') %}
+                    <tr>
+                        <td>
+                            <strong>{{ crop.name }}</strong>
+                            {% if crop.category == 'خضروات' %}
+                                <span class="badge bg-success ms-2">خضروات</span>
+                            {% elif crop.category == 'فواكه' %}
+                                <span class="badge bg-danger ms-2">فواكه</span>
+                            {% else %}
+                                <span class="badge bg-secondary ms-2">{{ crop.category }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if crop.category == 'فواكه' %}
+                                <i class="fas fa-apple-alt text-success"></i> فواكه
+                            {% elif crop.category == 'خضروات' %}
+                                <i class="fas fa-carrot text-warning"></i> خضروات
+                            {% else %}
+                                <i class="fas fa-leaf text-info"></i> أخرى
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ crop.variety or '—' }}</small>
+                        </td>
+                        <td>
+                            <small>
+                                {% if crop.location %}
+                                    <i class="fas fa-map-marker-alt text-danger"></i> {{ crop.location }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            {% if crop.area %}
+                                <strong>{{ crop.area }}</strong>
+                                <small class="text-muted">{{ crop.unit }}</small>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>
+                                {% if crop.planting_date %}
+                                    {{ crop.planting_date.strftime('%d-%m-%Y') }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td class="text-center">
+                            {% if crop.is_active %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> نشط
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times-circle"></i> موقوف
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('production.edit_crop', crop_id=crop.id) }}" class="btn btn-warning" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('reports.crop_report', crop_id=crop.id) }}" class="btn btn-info" title="تقرير">
+                                    <i class="fas fa-chart-bar"></i>
+                                </a>
+                                <a href="{{ url_for('production.add_consumption', crop_id=crop.id) }}" class="btn btn-success" title="إضافة استهلاك">
+                                    <i class="fas fa-plus"></i>
+                                </a>
+                                <a href="{{ url_for('production.crop_consumptions', crop_id=crop.id) }}" class="btn btn-secondary" title="سجل الاستهلاك">
+                                    <i class="fas fa-list"></i>
+                                </a>
+                                {% if current_user.can_delete or current_user.is_admin %}
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ crop.id }}" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Modal تأكيد الحذف -->
+                    {% if current_user.can_delete or current_user.is_admin %}
+                    <div class="modal fade" id="deleteModal{{ crop.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-exclamation-triangle"></i> تأكيد الحذف
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>هل تريد بالفعل حذف الصنف <strong>{{ crop.name }}</strong>؟</p>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>تحذير:</strong> سيتم حذف جميع سجلات الإنتاج والاستهلاك المرتبطة بهذا الصنف أيضاً.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                    <form method="POST" action="{{ url_for('production.delete_crop', crop_id=crop.id) }}" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-danger">
+                                            <i class="fas fa-trash"></i> حذف نهائياً
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <p class="text-muted mb-3">لا توجد أصناف مسجلة في النظام</p>
+            <a href="{{ url_for('production.add_crop') }}" class="btn btn-success">
+                <i class="fas fa-plus-circle"></i> إضافة أول صنف
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- معلومات إضافية -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> معلومات
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="small mb-2">
+                    • استخدم <strong>تعديل</strong> لتحديث معلومات الصنف
+                </p>
+                <p class="small mb-2">
+                    • استخدم <strong>تقرير</strong> لمشاهدة إحصائيات الإنتاج والبيع
+                </p>
+                <p class="small">
+                    • استخدم <strong>إضافة استهلاك</strong> لتسجيل الأدوية والأسمدة المستخدمة
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-bulb"></i> نصائح
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="small mb-2">
+                    • سجّل تاريخ الزراعة بدقة لتتبع دورة الحصاد
+                </p>
+                <p class="small mb-2">
+                    • حدّد الموقع والمساحة لكل صنف
+                </p>
+                <p class="small">
+                    • استخدم أسماء واضحة لتمييز الأصناف
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل استخدام محرك جديد{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- رأس الصفحة -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('motors.usage_logs') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <h1 class="h3 mb-0 ms-3">
+                    <i class="fas fa-plus-circle text-success"></i> تسجيل استخدام محرك جديد
+                </h1>
+            </div>
+
+            <!-- النموذج -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation">
+                        <!-- اختيار المحرك -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-cog text-info"></i> بيانات المحرك
+                            </h5>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="motor_id" class="form-label">المحرك <span class="text-danger">*</span></label>
+                            <select class="form-select" id="motor_id" name="motor_id" required>
+                                <option value="">-- اختر المحرك --</option>
+                                {% for motor in motors %}
+                                <option value="{{ motor.id }}">{{ motor.name }} - {{ motor.motor_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- معلومات ساعات الاستخدام -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-clock text-warning"></i> ساعات الاستخدام
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_hours" class="form-label">ساعات البداية <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="start_hours" name="start_hours" step="0.1" required>
+                                <small class="form-text text-muted">رقم ساعات عداد المحرك</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="end_hours" class="form-label">ساعات النهاية <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="end_hours" name="end_hours" step="0.1" required>
+                                <small class="form-text text-muted">رقم ساعات عداد المحرك</small>
+                            </div>
+                        </div>
+
+                        <!-- معلومات المشغل -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-user text-success"></i> معلومات المشغل
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="operator_name" class="form-label">اسم المشغل <span class="text-danger">*</span></label>
+                                <select class="form-select" id="operator_name" name="operator_name" required>
+                                    <option value="">-- اختر اسم المشغل --</option>
+                                    {% for name in operator_names %}
+                                    <option value="{{ name }}">{{ name }}</option>
+                                    {% endfor %}
+                                    <option value="" disabled>─────────────</option>
+                                    <option value="new" class="text-muted">+ إضافة مشغل جديد</option>
+                                </select>
+                                <input type="text" class="form-control mt-2" id="new_operator_name" name="new_operator_name" placeholder="أدخل اسم المشغل الجديد" style="display: none;">
+                                <small class="form-text text-muted">اختر من القائمة أو أضف مشغلاً جديداً</small>
+                                <div id="operator_quota_info" style="display: none;" class="alert alert-info mt-2 mb-0">
+                                    <small>
+                                        <strong>الساعات المتاحة:</strong> <span id="remaining_hours">-</span> ساعة
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </small>
+                                </div>
+                                <div id="operator_error_info" style="display: none;" class="alert alert-danger mt-2 mb-0">
+                                    <small id="error_message"></small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="operator_phone" class="form-label">رقم الهاتف</label>
+                                <input type="tel" class="form-control" id="operator_phone" name="operator_phone">
+                            </div>
+                        </div>
+
+                        <!-- معلومات الاستخدام -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle text-primary"></i> معلومات الاستخدام
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="usage_date" class="form-label">تاريخ الاستخدام</label>
+                                <input type="date" class="form-control" id="usage_date" name="usage_date">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label">مكان الاستخدام</label>
+                                <input type="text" class="form-control" id="location" name="location" placeholder="مثال: الحقل الشمالي">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="usage_purpose" class="form-label">الغرض من الاستخدام</label>
+                            <input type="text" class="form-control" id="usage_purpose" name="usage_purpose" 
+                                   placeholder="مثال: ضخ الماء، تجهيز الحقل، إلخ">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="ملاحظات إضافية..."></textarea>
+                        </div>
+
+                        <!-- معلومات الوقود -->
+                        <div class="section-title mb-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-gas-pump text-danger"></i> معلومات الوقود
+                            </h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fuel_added" class="form-label">كمية الوقود المضافة (لتر)</label>
+                                <input type="number" class="form-control" id="fuel_added" name="fuel_added" step="0.1">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="fuel_cost" class="form-label">تكلفة الوقود</label>
+                                <input type="number" class="form-control" id="fuel_cost" name="fuel_cost" step="0.01">
+                            </div>
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> حفظ التسجيل
+                            </button>
+                            <a href="{{ url_for('motors.usage_logs') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// معالجة اختيار اسم المشغل
+document.getElementById('operator_name').addEventListener('change', function() {
+    const operatorSelect = document.getElementById('operator_name');
+    const newOperatorInput = document.getElementById('new_operator_name');
+    const quotaInfo = document.getElementById('operator_quota_info');
+    const errorInfo = document.getElementById('operator_error_info');
+    
+    if (operatorSelect.value === 'new') {
+        // إظهار حقل إدخال المشغل الجديد
+        newOperatorInput.style.display = 'block';
+        newOperatorInput.required = true;
+        newOperatorInput.focus();
+        quotaInfo.style.display = 'none';
+        errorInfo.style.display = 'none';
+    } else {
+        // إخفاء حقل إدخال المشغل الجديد
+        newOperatorInput.style.display = 'none';
+        newOperatorInput.required = false;
+        newOperatorInput.value = '';
+        
+        if (operatorSelect.value) {
+            quotaInfo.style.display = 'block';
+            errorInfo.style.display = 'none';
+            // يمكن إضافة اتصال AJAX هنا للتحقق من الساعات المتبقية
+        } else {
+            quotaInfo.style.display = 'none';
+            errorInfo.style.display = 'none';
+        }
+    }
+});
+
+// معالجة النموذج عند الإرسال
+document.querySelector('form').addEventListener('submit', function(e) {
+    const operatorSelect = document.getElementById('operator_name');
+    const newOperatorInput = document.getElementById('new_operator_name');
+    
+    if (operatorSelect.value === 'new') {
+        if (!newOperatorInput.value.trim()) {
+            e.preventDefault();
+            alert('الرجاء إدخال اسم المشغل الجديد');
+            newOperatorInput.focus();
+            return false;
+        }
+        // تعيين قيمة الحقل المخفي من حقل الإدخال الجديد
+        operatorSelect.value = newOperatorInput.value.trim();
+    }
+});
+
+// دالة لحساب الساعات المستخدمة تلقائياً
+document.getElementById('end_hours').addEventListener('change', function() {
+    const startHours = parseFloat(document.getElementById('start_hours').value);
+    const endHours = parseFloat(this.value);
+    
+    if (startHours && endHours && endHours >= startHours) {
+        const totalHours = endHours - startHours;
+        console.log('إجمالي الساعات المستخدمة: ' + totalHours.toFixed(2));
+    }
+});
+</script>
+
+<style>
+    .section-title {
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+</style>
+{% endblock %}

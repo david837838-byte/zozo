@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}حركة مخزون{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تسجيل حركة مخزون - {{ item.name }}</h1>
+        <p class="text-muted">الكمية الحالية: {{ item.quantity }} {{ item.unit }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="transaction_type" class="form-label">نوع الحركة</label>
+                    <select class="form-select" id="transaction_type" name="transaction_type" required>
+                        <option selected>-- اختر --</option>
+                        <option value="دخول">دخول (إضافة إلى المخزون)</option>
+                        <option value="خروج">خروج (سحب من المخزون)</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="quantity" class="form-label">الكمية</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" step="0.01" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>ملاحظة:</strong> سيتم تحديث الكمية الحالية تلقائياً بناءً على نوع الحركة.
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> تسجيل الحركة
+                </button>
+                <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

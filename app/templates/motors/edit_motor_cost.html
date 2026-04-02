@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل تكلفة محرك{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2>تعديل تكلفة - {{ cost.motor.name }}</h2>
+            
+            <form method="POST" class="mt-4">
+                <div class="card">
+                    <div class="card-body">
+                        <!-- Motor Information -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">المحرك</label>
+                                <input type="text" class="form-control" value="{{ cost.motor.name }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">النوع</label>
+                                <input type="text" class="form-control" value="{{ cost.motor.motor_type }}" disabled>
+                            </div>
+                        </div>
+
+                        <!-- Cost Type -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="cost_type" class="form-label">نوع التكلفة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="cost_type" name="cost_type" required>
+                                    <option value="">-- اختر نوع التكلفة --</option>
+                                    <option value="fuel" {% if cost.cost_type == 'fuel' %}selected{% endif %}>الوقود</option>
+                                    <option value="maintenance" {% if cost.cost_type == 'maintenance' %}selected{% endif %}>الصيانة</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cost_date" class="form-label">تاريخ التكلفة <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="cost_date" 
+                                       name="cost_date" required 
+                                       value="{{ cost.cost_date.strftime('%Y-%m-%d') }}">
+                            </div>
+                        </div>
+
+                        <!-- Quantity and Unit Price -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="quantity" class="form-label">الكمية <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control" id="quantity" 
+                                       name="quantity" value="{{ cost.quantity }}" required onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="unit_price" class="form-label">سعر الوحدة ($) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control" id="unit_price" 
+                                       name="unit_price" value="{{ cost.unit_price }}" required onchange="calculateTotal()">
+                            </div>
+                        </div>
+
+                        <!-- Total Cost Display -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <label class="form-label">إجمالي التكلفة</label>
+                                    <h4>$<span id="total_cost">{{ "%.2f"|format(cost.total_cost) }}</span></h4>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Supplier and Invoice -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="supplier" class="form-label">المورد</label>
+                                <input type="text" class="form-control" id="supplier" name="supplier" 
+                                       value="{{ cost.supplier or '' }}" placeholder="اسم المورد">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="invoice_number" class="form-label">رقم الفاتورة</label>
+                                <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
+                                       value="{{ cost.invoice_number or '' }}" placeholder="رقم الفاتورة">
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label for="notes" class="form-label">ملاحظات</label>
+                                <textarea class="form-control" id="notes" name="notes" 
+                                          rows="3" placeholder="أي ملاحظات إضافية">{{ cost.notes or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check"></i> حفظ التعديلات
+                                </button>
+                                <a href="{{ url_for('motors.motor_costs') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> إلغاء
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateTotal() {
+    const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+    const unitPrice = parseFloat(document.getElementById('unit_price').value) || 0;
+    const total = (quantity * unitPrice).toFixed(2);
+    document.getElementById('total_cost').textContent = total;
+}
+
+// Calculate on page load
+document.addEventListener('DOMContentLoaded', function() {
+    calculateTotal();
+});
+</script>
+{% endblock %}

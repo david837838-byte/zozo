@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل استخدام شراحة{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تسجيل استخدام - {{ box.name }}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="quantity_used" class="form-label">عدد الصناديق المستخدمة</label>
+                    <input type="number" class="form-control" id="quantity_used" name="quantity_used" min="1" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="usage_date" class="form-label">تاريخ الاستخدام</label>
+                    <input type="date" class="form-control" id="usage_date" name="usage_date" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="purpose" class="form-label">الغرض من الاستخدام</label>
+                <textarea class="form-control" id="purpose" name="purpose" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>السعر الكلي:</strong> عدد الوحدات × {{ box.cost_per_box }} = <strong id="total_cost">0</strong> $
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> تسجيل الاستخدام
+                </button>
+                <a href="{{ url_for('settings.boxes') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('quantity_used').addEventListener('change', function() {
+    const quantity = parseFloat(this.value) || 0;
+    const unitPrice = {{ box.cost_per_box }};
+    const total = quantity * unitPrice;
+    document.getElementById('total_cost').textContent = total.toFixed(2);
+});
+</script>
+{% endblock %}

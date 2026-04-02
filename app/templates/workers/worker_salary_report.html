@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير الراتب - {{ worker.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0">
+                <div class="card-body text-center">
+                    <h2>تقرير الراتب الشامل</h2>
+                    <h4>{{ worker.name }}</h4>
+                    <p class="text-muted">{{ month_name }} {{ year }}</p>
+                    <p class="mb-0">
+                        {% if worker.is_monthly %}
+                        <span class="badge bg-primary">عامل شهري</span>
+                        {% else %}
+                        <span class="badge bg-secondary">عامل ساعي</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <small>الإجمالي قبل الدفعات</small>
+                    <h3 class="mb-0">${{ "%.2f"|format(monthly_summary.salary_before_worker_payments or monthly_summary.net_salary or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <small>المدفوع على الحساب</small>
+                    <h3 class="mb-0">${{ "%.2f"|format(monthly_summary.worker_payment_deductions or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card {% if (monthly_summary.remaining_salary or 0) >= 0 %}bg-info{% else %}bg-danger{% endif %} text-white">
+                <div class="card-body">
+                    <small>المتبقي</small>
+                    <h3 class="mb-0">${{ "%.2f"|format(monthly_summary.remaining_salary or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-secondary text-white">تفصيل الحساب</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>الراتب الأساسي</span>
+                        <strong>${{ "%.2f"|format(monthly_summary.base_salary or 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>خصم الغياب</span>
+                        <strong class="text-danger">${{ "%.2f"|format(monthly_summary.absence_deductions or monthly_summary.deductions or 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>ساعات إضافية</span>
+                        <strong>{{ "%.2f"|format(monthly_summary.overtime_hours or 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>أجر الإضافي</span>
+                        <strong class="text-info">${{ "%.2f"|format(monthly_summary.overtime_pay or 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>مكافآت</span>
+                        <strong class="text-success">${{ "%.2f"|format(monthly_summary.bonuses or 0) }}</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>الإجمالي قبل الدفعات</span>
+                        <strong>${{ "%.2f"|format(monthly_summary.salary_before_worker_payments or monthly_summary.net_salary or 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <span>السلف</span>
+                        <strong class="text-warning">${{ "%.2f"|format(month_payment_loans or 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <span>الدفعات على الحساب</span>
+                        <strong class="text-warning">${{ "%.2f"|format(month_payment_advances or 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <span>إجمالي المدفوع</span>
+                        <strong class="text-warning">${{ "%.2f"|format(month_payment_total or 0) }}</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>المتبقي النهائي</span>
+                        <strong class="{% if (monthly_summary.remaining_salary or 0) >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ "%.2f"|format(monthly_summary.remaining_salary or 0) }}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">ملخص الحضور</div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <small class="text-muted d-block">أيام الحضور</small>
+                            <strong class="text-success">{{ monthly_summary.present_days }}</strong>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <small class="text-muted d-block">أيام الغياب</small>
+                            <strong class="text-danger">{{ monthly_summary.absent_days }}</strong>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <small class="text-muted d-block">إجمالي الساعات</small>
+                            <strong>{{ "%.2f"|format(monthly_summary.total_hours or 0) }}</strong>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <small class="text-muted d-block">نوع العامل</small>
+                            <strong>{% if worker.is_monthly %}شهري{% else %}ساعي{% endif %}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">سجل الدفعات خلال الشهر</div>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>النوع</th>
+                        <th>البيان</th>
+                        <th>المبلغ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in month_payment_transactions %}
+                    <tr>
+                        <td>{{ transaction.transaction_date }}</td>
+                        <td>
+                            {% if 'worker_payment_kind=loan' in (transaction.notes or '') %}
+                                سلفة
+                            {% elif 'worker_payment_kind=advance' in (transaction.notes or '') %}
+                                دفعة على الحساب
+                            {% else %}
+                                دفعة مرتبطة بالعامل
+                            {% endif %}
+                        </td>
+                        <td>{{ transaction.description }}</td>
+                        <td>{{ "%.2f"|format(transaction.amount or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">لا توجد دفعات مرتبطة بهذا الشهر.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">سجل الحضور اليومي</div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الحالة</th>
+                        <th>الساعات</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attendance in daily_attendances %}
+                    <tr>
+                        <td>{{ attendance.attendance_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ attendance.status }}</td>
+                        <td>{{ "%.2f"|format(attendance.hours_worked or 0) }}</td>
+                        <td>{{ attendance.notes or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">لا توجد سجلات حضور لهذه الفترة.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> طباعة التقرير
+            </button>
+            <a href="{{ url_for('workers.monthly_attendance', year=year, month=month) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للحضور الشهري
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

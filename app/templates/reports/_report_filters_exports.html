@@ -1,0 +1,21 @@
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="from_date" class="form-label mb-1">من تاريخ</label>
+                <input type="date" id="from_date" name="from_date" class="form-control form-control-sm" value="{{ from_date or '' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="to_date" class="form-label mb-1">إلى تاريخ</label>
+                <input type="date" id="to_date" name="to_date" class="form-control form-control-sm" value="{{ to_date or '' }}">
+            </div>
+            <div class="col-md-6 d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">تطبيق الفلترة</button>
+                <a href="{{ url_for(request.endpoint) }}" class="btn btn-outline-secondary btn-sm">إعادة ضبط</a>
+                <a href="{{ url_for(request.endpoint, from_date=from_date or None, to_date=to_date or None, export='excel') }}" class="btn btn-success btn-sm">تصدير Excel</a>
+                <a href="{{ url_for(request.endpoint, from_date=from_date or None, to_date=to_date or None, export='pdf') }}" class="btn btn-danger btn-sm">تصدير PDF</a>
+            </div>
+        </form>
+        <small class="text-muted d-block mt-2">الفترة الحالية: {{ date_range_label or 'كل الفترات' }}</small>
+    </div>
+</div>

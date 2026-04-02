@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}التقرير السنوي لساعات المشغلين{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <!-- رأس الصفحة -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-chart-bar text-primary"></i> التقرير السنوي لساعات المشغلين
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('motors.operator_quotas', year=year) }}" class="btn btn-info">
+                <i class="fas fa-hourglass-half"></i> إدارة الحصص
+            </a>
+        </div>
+    </div>
+
+    <!-- اختيار السنة -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('motors.operators_annual_report') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">اختر السنة</label>
+                    <select name="year" class="form-select" onchange="this.form.submit()">
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ملخص الإحصائيات -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">إجمالي الساعات المخصصة</h6>
+                    <h3 class="text-primary mb-0">{{ "%.2f"|format(total_allocated) }}</h3>
+                    <small class="text-muted">ساعة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">إجمالي الساعات المستخدمة</h6>
+                    <h3 class="text-warning mb-0">{{ "%.2f"|format(total_used) }}</h3>
+                    <small class="text-muted">ساعة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">إجمالي الساعات المتبقية</h6>
+                    <h3 class="text-info mb-0">{{ "%.2f"|format(total_remaining) }}</h3>
+                    <small class="text-muted">ساعة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">عدد المشغلين</h6>
+                    <h3 class="text-success mb-0">{{ quotas|length }}</h3>
+                    <small class="text-muted">مشغل</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول التفاصيل -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> تفاصيل ساعات المشغلين لعام {{ year }}
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th><i class="fas fa-user"></i> اسم المشغل</th>
+                        <th class="text-center"><i class="fas fa-hourglass-half"></i> الساعات المخصصة</th>
+                        <th class="text-center"><i class="fas fa-chart-line"></i> الساعات المستخدمة</th>
+                        <th class="text-center"><i class="fas fa-stopwatch"></i> الساعات المتبقية</th>
+                        <th class="text-center"><i class="fas fa-battery"></i> نسبة الاستخدام</th>
+                        <th><i class="fas fa-toggle-on"></i> الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if quotas %}
+                        {% for quota in quotas %}
+                        <tr>
+                            <td><strong>{{ loop.index }}</strong></td>
+                            <td><strong>{{ quota.operator_name }}</strong></td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">{{ "%.2f"|format(quota.allocated_hours) }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-warning">{{ "%.2f"|format(quota.used_hours) }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info">{{ "%.2f"|format(quota.remaining_hours) }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% set percentage = (quota.used_hours / quota.allocated_hours * 100) if quota.allocated_hours > 0 else 0 %}
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if percentage >= 100 %}bg-danger{% elif percentage >= 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ [percentage, 100]|min }}%"
+                                         aria-valuenow="{{ percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ "%.0f"|format(percentage) }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if quota.status == 'نشط' %}
+                                    <span class="badge bg-success">نشط</span>
+                                {% elif quota.status == 'مجمد' %}
+                                    <span class="badge bg-warning">مجمد</span>
+                                {% else %}
+                                    <span class="badge bg-danger">معطل</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox"></i> لا توجد بيانات للسنة المختارة
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="2"><strong>الإجمالي</strong></td>
+                        <td class="text-center"><strong>{{ "%.2f"|format(total_allocated) }}</strong></td>
+                        <td class="text-center"><strong>{{ "%.2f"|format(total_used) }}</strong></td>
+                        <td class="text-center"><strong>{{ "%.2f"|format(total_remaining) }}</strong></td>
+                        <td class="text-center">
+                            {% set total_percentage = (total_used / total_allocated * 100) if total_allocated > 0 else 0 %}
+                            <strong>{{ "%.1f"|format(total_percentage) }}%</strong>
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- معلومات إضافية -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle"></i> 
+                <strong>ملاحظة:</strong> يتم تحديث بيانات الاستخدام تلقائياً عند كل إضافة استخدام جديد للمحرك
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .progress {
+        background-color: #e9ecef;
+    }
+</style>
+{% endblock %}

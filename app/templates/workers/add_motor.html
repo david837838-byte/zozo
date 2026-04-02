@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل ساعات محرك{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تسجيل ساعات محرك لـ {{ worker.name }}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="motor_name" class="form-label">اسم المحرك</label>
+                    <input type="text" class="form-control" id="motor_name" name="motor_name" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="start_date" class="form-label">تاريخ ووقت البداية</label>
+                    <input type="datetime-local" class="form-control" id="start_date" name="start_date" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="diesel_price_per_hour" class="form-label">سعر الصرف بالساعة (لتر/ساعة)</label>
+                    <input type="number" class="form-control" id="diesel_price_per_hour" name="diesel_price_per_hour" step="0.01" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="diesel_price_per_liter" class="form-label">سعر اللتر ($)</label>
+                    <input type="number" class="form-control" id="diesel_price_per_liter" name="diesel_price_per_liter" step="0.01" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>ملاحظة:</strong> سيتم حساب إجمالي ساعات المحرك وتكلفة المازوت تلقائياً عند إدخال تاريخ النهاية.
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> تسجيل المحرك
+                </button>
+                <a href="{{ url_for('workers.view_worker', worker_id=worker.id) }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

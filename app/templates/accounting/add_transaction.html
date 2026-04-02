@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة معاملة محاسبية{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تسجيل معاملة محاسبية جديدة</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="transaction_type" class="form-label">نوع المعاملة</label>
+                    <select class="form-select" id="transaction_type" name="transaction_type" required>
+                        <option value="">-- اختر --</option>
+                        <option value="دخل">دخل</option>
+                        <option value="مصروف">مصروف</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="transaction_date" class="form-label">التاريخ</label>
+                    <input type="date" class="form-control" id="transaction_date" name="transaction_date" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="description" class="form-label">البيان</label>
+                    <input type="text" class="form-control" id="description" name="description" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="amount" class="form-label">المبلغ</label>
+                    <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="category_id" class="form-label">الفئة (للمصروفات)</label>
+                    <select class="form-select" id="category_id" name="category_id">
+                        <option value="">-- بدون فئة --</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="reference_type" class="form-label">نوع المرجع</label>
+                    <select class="form-select" id="reference_type" name="reference_type">
+                        <option value="">-- بدون --</option>
+                        <option value="عامل">عامل</option>
+                        <option value="مخزون">مخزون</option>
+                        <option value="بيع">بيع</option>
+                        <option value="إنتاج">إنتاج</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="reference_id" class="form-label">رقم المرجع</label>
+                    <input type="number" class="form-control" id="reference_id" name="reference_id" min="1" placeholder="مثال: رقم العامل أو رقم القيد">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> تسجيل المعاملة
+                </button>
+                <a href="{{ url_for('accounting.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

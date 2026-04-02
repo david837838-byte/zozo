@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}سجل شراء الشراحات والكراتين{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>سجل شراء الشراحات والكراتين</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('inventory.box_purchases_report') }}" class="btn btn-info">
+                <i class="bi bi-bar-chart"></i> التقرير السنوي
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-success" role="alert">
+            <strong>إجمالي التكلفة:</strong> {{ total_cost|round(2) }} $
+        </div>
+    </div>
+</div>
+
+{% if purchases %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>اسم الشراحة/الكرتين</th>
+                <th>الكمية</th>
+                <th>سعر الوحدة ($)</th>
+                <th>التكلفة الكلية ($)</th>
+                <th>تاريخ الشراء</th>
+                <th>الموردة</th>
+                <th>رقم الفاتورة</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for purchase in purchases %}
+            <tr>
+                <td><strong>{{ purchase.box_type.name }}</strong></td>
+                <td>{{ purchase.quantity }}</td>
+                <td>{{ purchase.unit_price }}</td>
+                <td><strong>{{ purchase.total_cost|round(2) }}</strong></td>
+                <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ purchase.supplier or '-' }}</td>
+                <td>{{ purchase.invoice_number or '-' }}</td>
+                <td>
+                    <a href="{{ url_for('inventory.edit_box_purchase', purchase_id=purchase.id) }}" 
+                       class="btn btn-sm btn-warning" title="تعديل">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="POST" action="{{ url_for('inventory.delete_box_purchase', purchase_id=purchase.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا السجل؟');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-sm btn-danger" title="حذف">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('inventory.boxes') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> العودة للشراحات والكراتين
+    </a>
+</div>
+{% else %}
+<div class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle"></i> لا توجد عمليات شراء مسجلة حتى الآن.
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('inventory.boxes') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> العودة للشراحات والكراتين
+    </a>
+</div>
+{% endif %}
+{% endblock %}

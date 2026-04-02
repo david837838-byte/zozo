@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الشراحة/الكرتين{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تعديل - {{ box.name }}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="name" class="form-label">الاسم</label>
+                    <input type="text" class="form-control" id="name" name="name" 
+                           value="{{ box.name }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="box_type" class="form-label">النوع</label>
+                    <select class="form-select" id="box_type" name="box_type" required>
+                        <option value="كبير"{% if box.box_type == 'كبير' %} selected{% endif %}>كبير</option>
+                        <option value="صغير"{% if box.box_type == 'صغير' %} selected{% endif %}>صغير</option>
+                        <option value="نصفي"{% if box.box_type == 'نصفي' %} selected{% endif %}>نصفي</option>
+                        <option value="فريز"{% if box.box_type == 'فريز' %} selected{% endif %}>فريز</option>
+                        <option value="قرقوز"{% if box.box_type == 'قرقوز' %} selected{% endif %}>قرقوز</option>
+                        <option value="آخر"{% if box.box_type == 'آخر' %} selected{% endif %}>آخر</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="capacity" class="form-label">السعة (اختياري)</label>
+                    <input type="number" class="form-control" id="capacity" name="capacity" 
+                           step="0.01" value="{{ box.capacity or '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="unit" class="form-label">الوحدة (اختياري)</label>
+                    <input type="text" class="form-control" id="unit" name="unit" 
+                           value="{{ box.unit or '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="cost_per_box" class="form-label">التكلفة للصندوق ($)</label>
+                    <input type="number" class="form-control" id="cost_per_box" name="cost_per_box" 
+                           step="0.01" value="{{ box.cost_per_box }}" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="supplier" class="form-label">الموردة</label>
+                <input type="text" class="form-control" id="supplier" name="supplier" 
+                       value="{{ box.supplier or '' }}">
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> حفظ التعديلات
+                </button>
+                <a href="{{ url_for('inventory.boxes') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

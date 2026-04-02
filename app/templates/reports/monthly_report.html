@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}التقرير الشهري{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>التقرير الشهري - {{ month }}</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <p class="card-text">إجمالي المبيعات</p>
+                <h3 class="mb-0">{{ total_sales|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <p class="card-text">إجمالي المصروفات</p>
+                <h3 class="mb-0">{{ total_expenses|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <p class="card-text">الفائض</p>
+                <h3 class="mb-0">{{ (total_sales - total_expenses)|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">سجل المبيعات</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الصنف</th>
+                            <th>الكمية</th>
+                            <th>الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                        <tr>
+                            <td>{{ sale.sale_date }}</td>
+                            <td>{{ sale.crop.name }}</td>
+                            <td>{{ sale.quantity }}</td>
+                            <td>{{ sale.total_price }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted p-3">لا توجد مبيعات</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">سجل الإنتاج</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الصنف</th>
+                            <th>الكمية</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prod in production %}
+                        <tr>
+                            <td>{{ prod.production_date }}</td>
+                            <td>{{ prod.crop.name }}</td>
+                            <td>{{ prod.quantity }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted p-3">لا يوجد إنتاج</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">سجل المصروفات</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>التاريخ</th>
+                    <th>البيان</th>
+                    <th>الفئة</th>
+                    <th>المبلغ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td>{{ expense.transaction_date }}</td>
+                    <td>{{ expense.description }}</td>
+                    <td>{{ expense.category.name if expense.category else '-' }}</td>
+                    <td>{{ expense.amount }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted p-4">لا توجد مصروفات</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> عودة إلى التقارير
+    </a>
+</div>
+{% endblock %}

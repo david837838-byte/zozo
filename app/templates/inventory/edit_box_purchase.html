@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل عملية شراء{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تعديل عملية شراء - {{ purchase.box_type.name }}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="box_name" class="form-label">اسم الشراحة/الكرتين</label>
+                    <input type="text" class="form-control" id="box_name" disabled 
+                           value="{{ purchase.box_type.name }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="quantity" class="form-label">الكمية المشتراة (وحدة)</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" 
+                           value="{{ purchase.quantity }}" required min="1" onchange="updateTotalCost()">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="unit_price" class="form-label">سعر الوحدة ($)</label>
+                    <input type="number" class="form-control" id="unit_price" name="unit_price" 
+                           value="{{ purchase.unit_price }}" step="0.01" required min="0.01" onchange="updateTotalCost()">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="total_cost_display" class="form-label">التكلفة الكلية ($)</label>
+                    <input type="text" class="form-control" id="total_cost_display" disabled 
+                           value="{{ purchase.total_cost|round(2) }}"
+                           style="background-color: #e7f3ff; font-weight: bold; font-size: 1.1em;">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="purchase_date" class="form-label">تاريخ الشراء</label>
+                    <input type="date" class="form-control" id="purchase_date" name="purchase_date" 
+                           value="{{ purchase.purchase_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="supplier" class="form-label">الموردة</label>
+                    <input type="text" class="form-control" id="supplier" name="supplier" 
+                           value="{{ purchase.supplier or '' }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="invoice_number" class="form-label">رقم الفاتورة</label>
+                    <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
+                           value="{{ purchase.invoice_number or '' }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3">{{ purchase.notes or '' }}</textarea>
+            </div>
+
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle"></i> 
+                <strong>حساب التكلفة الكلية:</strong> الكمية × سعر الوحدة = التكلفة الكلية
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> حفظ التغييرات
+                </button>
+                <a href="{{ url_for('inventory.box_purchases') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function updateTotalCost() {
+    const quantity = parseInt(document.getElementById('quantity').value) || 0;
+    const unitPrice = parseFloat(document.getElementById('unit_price').value) || 0;
+    const totalCost = quantity * unitPrice;
+    document.getElementById('total_cost_display').value = totalCost.toFixed(2);
+}
+
+// Update on load
+document.addEventListener('DOMContentLoaded', updateTotalCost);
+</script>
+{% endblock %}

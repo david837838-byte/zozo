@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}العمال - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-9">
+        <h1>العمال</h1>
+    </div>
+    <div class="col-3">
+        <a href="{{ url_for('workers.add_worker') }}" class="btn btn-primary float-end">
+            <i class="bi bi-plus-circle"></i> إضافة عامل جديد
+        </a>
+    </div>
+</div>
+
+<!-- أزرار أقسام الحضور -->
+<div class="row mb-3">
+    <div class="col-12">
+        <a href="{{ url_for('workers.attendance') }}" class="btn btn-success">
+            <i class="fas fa-clipboard-check"></i> الحضور والغياب
+        </a>
+        <a href="{{ url_for('workers.monthly_attendance') }}" class="btn btn-info">
+            <i class="fas fa-calendar-alt"></i> الحضور الشهري
+        </a>
+        <a href="{{ url_for('workers.closed_accounts') }}" class="btn btn-secondary">
+            <i class="fas fa-archive"></i> الحسابات المسكرة
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الاسم</th>
+                    <th>الهاتف</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>نوع العامل</th>
+                    <th>موقع العمل</th>
+                    <th>إجمالي الساعات</th>
+                    <th>أيام العمل</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for worker in workers %}
+                {% set summary = worker_summaries.get(worker.id, {'total_hours': 0, 'worked_days': 0}) %}
+                <tr>
+                    <td>{{ worker.name }}</td>
+                    <td>{{ worker.phone }}</td>
+                    <td>{{ worker.email }}</td>
+                    <td>
+                        {% if worker.is_monthly %}
+                            <span class="badge bg-success">شهري</span>
+                        {% else %}
+                            <span class="badge bg-info">بالساعة</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ worker.work_location }}</td>
+                    <td>{{ "%.2f"|format(summary.total_hours) }} ساعة</td>
+                    <td>{{ summary.worked_days }} يوم</td>
+                    <td>
+                        {% if worker.is_active %}
+                            <span class="badge bg-success">نشط</span>
+                        {% else %}
+                            <span class="badge bg-danger">معطل</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('workers.view_worker', worker_id=worker.id) }}" class="btn btn-sm btn-info">
+                            <i class="bi bi-eye"></i> عرض
+                        </a>
+                        <a href="{{ url_for('workers.edit_worker', worker_id=worker.id) }}" class="btn btn-sm btn-warning">
+                            <i class="bi bi-pencil"></i> تعديل
+                        </a>
+                        {% if current_user.can_delete or current_user.is_admin %}
+                        <form method="POST" action="{{ url_for('workers.delete_worker', worker_id=worker.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا العامل؟');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> حذف
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if current_user.can_delete or current_user.is_admin %}
+                            {% if worker.is_active %}
+                            <a href="{{ url_for('workers.close_worker_account', worker_id=worker.id) }}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-lock"></i> تسكير
+                            </a>
+                            {% else %}
+                            <form method="POST" action="{{ url_for('workers.reopen_worker_account', worker_id=worker.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من إعادة فتح حساب هذا العامل؟');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-unlock"></i> إعادة فتح
+                                </button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted p-4">لا توجد عمال مسجلة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

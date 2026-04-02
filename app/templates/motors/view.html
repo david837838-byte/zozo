@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل المحرك: {{ motor.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <!-- رأس الصفحة -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <a href="{{ url_for('motors.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <h1 class="h3 mb-0 ms-3">
+                    <i class="fas fa-cog text-primary"></i> {{ motor.name }}
+                </h1>
+                {% if motor.is_active %}
+                    <span class="badge bg-success ms-2">نشط</span>
+                {% else %}
+                    <span class="badge bg-danger ms-2">غير نشط</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('motors.edit_motor', motor_id=motor.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+            <a href="{{ url_for('motors.add_usage') }}" class="btn btn-primary ms-2">
+                <i class="fas fa-plus"></i> تسجيل استخدام
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- معلومات المحرك -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> معلومات المحرك</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">نوع المحرك</small>
+                        <p class="mb-0"><strong>{{ motor.motor_type }}</strong></p>
+                    </div>
+                    
+                    {% if motor.model %}
+                    <div class="mb-3">
+                        <small class="text-muted">الموديل</small>
+                        <p class="mb-0"><strong>{{ motor.model }}</strong></p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if motor.serial_number %}
+                    <div class="mb-3">
+                        <small class="text-muted">الرقم التسلسلي</small>
+                        <p class="mb-0"><strong>{{ motor.serial_number }}</strong></p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if motor.capacity %}
+                    <div class="mb-3">
+                        <small class="text-muted">القوة</small>
+                        <p class="mb-0"><strong>{{ motor.capacity }} HP</strong></p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if motor.location %}
+                    <div class="mb-3">
+                        <small class="text-muted">الموقع</small>
+                        <p class="mb-0"><strong>{{ motor.location }}</strong></p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if motor.purchase_date %}
+                    <div class="mb-3">
+                        <small class="text-muted">تاريخ الشراء</small>
+                        <p class="mb-0"><strong>{{ motor.purchase_date.strftime('%Y-%m-%d') }}</strong></p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if motor.description %}
+                    <div class="mb-3">
+                        <small class="text-muted">الوصف</small>
+                        <p class="mb-0"><strong>{{ motor.description }}</strong></p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- إحصائيات الاستخدام -->
+        <div class="col-lg-8 mb-4">
+            <div class="row">
+                <!-- ملخص الإحصائيات -->
+                <div class="col-md-6 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted mb-2">إجمالي الساعات</h6>
+                            <h3 class="text-primary mb-0">{{ "%.2f"|format(total_hours) }}</h3>
+                            <small class="text-muted">ساعة</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted mb-2">عدد مرات الاستخدام</h6>
+                            <h3 class="text-info mb-0">{{ usage_count }}</h3>
+                            <small class="text-muted">مرة</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted mb-2">إجمالي تكاليف الوقود</h6>
+                            <h3 class="text-success mb-0">{{ "%.2f"|format(total_fuel_cost) }}</h3>
+                            <small class="text-muted">$</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted mb-2">آخر تحديث</h6>
+                            <p class="mb-0 text-muted small">{{ motor.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ساعات التشغيل لكل شخص -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-clock"></i> ساعات التشغيل حسب المشغل
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if operator_stats %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th><i class="fas fa-user"></i> اسم المشغل</th>
+                                        <th class="text-center"><i class="fas fa-hourglass-half"></i> إجمالي الساعات</th>
+                                        <th class="text-center"><i class="fas fa-list"></i> عدد مرات الاستخدام</th>
+                                        <th class="text-center"><i class="fas fa-gas-pump"></i> تكاليف الوقود</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for stat in operator_stats %}
+                                    <tr>
+                                        <td><strong>{{ loop.index }}</strong></td>
+                                        <td><strong>{{ stat.operator_name }}</strong></td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">{{ "%.2f"|format(stat.total_hours or 0) }} ساعة</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">{{ stat.usage_count }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-success">{{ "%.2f"|format(stat.total_fuel_cost or 0) }} $</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info m-3 mb-0">
+                            <i class="fas fa-info-circle"></i> لا توجد تسجيلات استخدام لهذا المحرك
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- آخر استخدامات -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> آخر 10 استخدامات
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_usages %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th><i class="fas fa-calendar"></i> التاريخ</th>
+                                        <th><i class="fas fa-user"></i> المشغل</th>
+                                        <th class="text-center"><i class="fas fa-hourglass-half"></i> الساعات</th>
+                                        <th><i class="fas fa-map-marker"></i> الموقع</th>
+                                        <th><i class="fas fa-align-left"></i> الملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for usage in recent_usages %}
+                                    <tr class="cursor-pointer" onclick="window.location.href='{{ url_for('motors.edit_usage', usage_id=usage.id) }}'">
+                                        <td>{{ loop.index }}</td>
+                                        <td><strong>{{ usage.usage_date.strftime('%Y-%m-%d') }}</strong></td>
+                                        <td>{{ usage.operator_name }}</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">{{ "%.2f"|format(usage.total_hours or 0) }}</span>
+                                        </td>
+                                        <td>{{ usage.location or '-' }}</td>
+                                        <td>{{ usage.notes[:30] or '-' }}{% if usage.notes and usage.notes|length > 30 %}...{% endif %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info m-3 mb-0">
+                            <i class="fas fa-info-circle"></i> لا توجد تسجيلات استخدام
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    .cursor-pointer:hover {
+        background-color: #f8f9fa;
+    }
+    .table-responsive {
+        margin: 0;
+    }
+</style>
+{% endblock %}

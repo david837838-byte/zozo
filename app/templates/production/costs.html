@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}تكاليف الإنتاج{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-money-bill"></i> تكاليف الإنتاج</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('production.add_production_cost') }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> إضافة تكلفة
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">إجمالي التكاليف</h5>
+                    <h2 class="text-danger">
+                        <i class="fas fa-money-bill-wave"></i> {{ "%.2f"|format(total_costs) }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">عدد السجلات</h5>
+                    <h2 class="text-primary">{{ costs|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">توزيع التكاليف حسب النوع</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>نوع التكلفة</th>
+                                <th class="text-end">الإجمالي</th>
+                                <th class="text-end">النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cost_type, amount in costs_by_type %}
+                            <tr>
+                                <td>{{ cost_type }}</td>
+                                <td class="text-end"><strong>{{ "%.2f"|format(amount) }}</strong></td>
+                                <td class="text-end">
+                                    {% if total_costs > 0 %}
+                                        {{ "%.1f"|format((amount / total_costs) * 100) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>التاريخ</th>
+                    <th>الصنف</th>
+                    <th>نوع التكلفة</th>
+                    <th>الفئة</th>
+                    <th>الوصف</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة</th>
+                    <th>المجموع</th>
+                    <th>المرجع</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cost in costs %}
+                <tr>
+                    <td>{{ cost.cost_date.strftime('%Y-%m-%d') }}</td>
+                    <td><strong>{{ cost.crop.name }}</strong></td>
+                    <td>{{ cost.cost_type }}</td>
+                    <td>{{ cost.cost_category }}</td>
+                    <td><small>{{ cost.description or '-' }}</small></td>
+                    <td>
+                        {% if cost.quantity %}
+                            {{ "%.2f"|format(cost.quantity) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ "%.2f"|format(cost.unit_cost) }}</td>
+                    <td><span class="badge bg-warning">{{ "%.2f"|format(cost.total_cost) }}</span></td>
+                    <td>{{ cost.reference_number or '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('production.edit_production_cost', cost_id=cost.id) }}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i> تعديل
+                        </a>
+                        <form method="POST" action="{{ url_for('production.delete_production_cost', cost_id=cost.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل تريد فعلاً حذف هذه التكلفة؟');">
+                                <i class="fas fa-trash"></i> حذف
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

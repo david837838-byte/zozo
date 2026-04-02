@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-chart-box {
+        height: 320px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h1 class="mb-1">لوحة التحكم</h1>
+        <p class="text-muted mb-0">الفترة الحالية: <strong>{{ date_range_label }}</strong></p>
+    </div>
+    <div class="col-md-4 text-end">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('home.dashboard', range='today') }}" class="btn btn-sm {% if selected_range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">اليوم</a>
+            <a href="{{ url_for('home.dashboard', range='month') }}" class="btn btn-sm {% if selected_range == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">هذا الشهر</a>
+            <a href="{{ url_for('home.dashboard', range='quarter') }}" class="btn btn-sm {% if selected_range == 'quarter' %}btn-primary{% else %}btn-outline-primary{% endif %}">آخر 3 أشهر</a>
+            <a href="{{ url_for('home.dashboard', range='year') }}" class="btn btn-sm {% if selected_range == 'year' %}btn-primary{% else %}btn-outline-primary{% endif %}">هذه السنة</a>
+            <a href="{{ url_for('home.dashboard', range='all') }}" class="btn btn-sm {% if selected_range == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">كل الفترات</a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">عدد العمال</p>
+                <h4 class="mb-0">{{ workers_count | default(0) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">الأصناف النشطة</p>
+                <h4 class="mb-0">{{ crops_count | default(0) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">عناصر المخزون</p>
+                <h4 class="mb-0">{{ inventory_count | default(0) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">إجمالي المبيعات</p>
+                <h4 class="mb-0 text-success">{{ total_sales | default(0) | round(2) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">إجمالي التكاليف</p>
+                <h4 class="mb-0 text-danger">{{ total_costs | default(0) | round(2) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <p class="text-muted mb-1">صافي الربح</p>
+                <h4 class="mb-0 {% if net_profit >= 0 %}text-primary{% else %}text-danger{% endif %}">{{ net_profit | default(0) | round(2) }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">تنبيه نافد المخزون <span class="badge bg-danger">{{ out_of_stock_count }}</span></h5>
+            </div>
+            <div class="card-body">
+                {% if out_of_stock_items %}
+                    <ul class="list-group list-group-flush">
+                        {% for item in out_of_stock_items %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ item.name }}</span>
+                            <span class="badge bg-danger">{{ item.quantity }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">لا توجد عناصر نافدة.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">تنبيه مخزون منخفض <span class="badge bg-warning text-dark">{{ low_stock_count }}</span></h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_items %}
+                    <ul class="list-group list-group-flush">
+                        {% for item in low_stock_items %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ item.name }}</span>
+                            <span class="badge bg-warning text-dark">{{ item.quantity }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">لا توجد عناصر منخفضة المخزون.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">تنبيه قرب انتهاء الصلاحية <span class="badge bg-info">{{ expiring_soon_count }}</span></h5>
+            </div>
+            <div class="card-body">
+                {% if expiring_soon_items %}
+                    <ul class="list-group list-group-flush">
+                        {% for item in expiring_soon_items %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ item.name }}</span>
+                            <span class="badge bg-info">{{ item.expiry_date.strftime('%Y-%m-%d') }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">لا توجد عناصر قريبة الانتهاء.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">الإنتاج حسب الصنف (ضمن الفترة)</h5>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-chart-box">
+                    <canvas id="productionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">المبيعات حسب الصنف (ضمن الفترة)</h5>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-chart-box">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">استهلاك الأدوية (كمية + تكلفة)</h5>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-chart-box">
+                    <canvas id="medicineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">استهلاك الأسمدة (كمية + تكلفة)</h5>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-chart-box">
+                    <canvas id="fertilizerChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">الأقسام المتاحة</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% if current_user.can_manage_workers or current_user.is_admin %}
+                    <a href="{{ url_for('workers.index') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-people"></i> قسم العمال والورديات
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.can_manage_inventory or current_user.is_admin %}
+                    <a href="{{ url_for('inventory.index') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-boxes"></i> قسم المخزون
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.can_manage_production or current_user.is_admin %}
+                    <a href="{{ url_for('production.index') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-plant"></i> قسم الإنتاج والأصناف
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.can_manage_sales or current_user.is_admin %}
+                    <a href="{{ url_for('sales.index') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-cart-check"></i> قسم المبيعات
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.can_manage_accounting or current_user.is_admin %}
+                    <a href="{{ url_for('accounting.index') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-calculator"></i> قسم المحاسبة
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.can_manage_reports or current_user.is_admin %}
+                    <a href="{{ url_for('reports.index') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-file-earmark-pdf"></i> قسم التقارير
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">إجراءات سريعة</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if current_user.can_manage_workers or current_user.is_admin %}
+                    <a href="{{ url_for('workers.add_worker') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> إضافة عامل جديد
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.can_manage_production or current_user.is_admin %}
+                    <a href="{{ url_for('production.add_production') }}" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle"></i> تسجيل إنتاج جديد
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.can_manage_sales or current_user.is_admin %}
+                    <a href="{{ url_for('sales.add_sale') }}" class="btn btn-outline-info">
+                        <i class="bi bi-plus-circle"></i> إضافة بيع جديد
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.can_manage_accounting or current_user.is_admin %}
+                    <a href="{{ url_for('accounting.add_transaction') }}" class="btn btn-outline-danger">
+                        <i class="bi bi-plus-circle"></i> تسجيل معاملة محاسبية
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        function normalizeSeries(labels, values, emptyLabel) {
+            if (!Array.isArray(labels) || !Array.isArray(values) || labels.length === 0 || values.length === 0) {
+                return {
+                    labels: [emptyLabel],
+                    values: [0]
+                };
+            }
+            return {
+                labels: labels,
+                values: values.map(function (v) { return Number(v || 0); })
+            };
+        }
+
+        function buildBarChart(canvasId, labels, values, datasetLabel, color) {
+            var chartElement = document.getElementById(canvasId);
+            if (!chartElement) return;
+
+            var series = normalizeSeries(labels, values, 'لا توجد بيانات');
+            var ctx = chartElement.getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: series.labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: series.values,
+                        backgroundColor: color + '99',
+                        borderColor: color,
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function buildConsumptionChart(canvasId, labels, qtyValues, costValues, qtyLabel, costLabel, qtyColor, costColor) {
+            var chartElement = document.getElementById(canvasId);
+            if (!chartElement) return;
+
+            var normalizedQty = normalizeSeries(labels, qtyValues, 'لا توجد بيانات');
+            var normalizedCost = normalizeSeries(labels, costValues, 'لا توجد بيانات');
+            var ctx = chartElement.getContext('2d');
+
+            new Chart(ctx, {
+                data: {
+                    labels: normalizedQty.labels,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: qtyLabel,
+                            data: normalizedQty.values,
+                            yAxisID: 'y',
+                            backgroundColor: qtyColor + '99',
+                            borderColor: qtyColor,
+                            borderWidth: 1,
+                            borderRadius: 6
+                        },
+                        {
+                            type: 'line',
+                            label: costLabel,
+                            data: normalizedCost.values,
+                            yAxisID: 'y1',
+                            borderColor: costColor,
+                            backgroundColor: costColor + '55',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            position: 'left'
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        buildBarChart(
+            'productionChart',
+            {{ production_chart_labels | tojson }},
+            {{ production_chart_values | tojson }},
+            'كمية الإنتاج',
+            '#2e7d32'
+        );
+
+        buildBarChart(
+            'salesChart',
+            {{ sales_chart_labels | tojson }},
+            {{ sales_chart_values | tojson }},
+            'قيمة المبيعات',
+            '#1565c0'
+        );
+
+        buildConsumptionChart(
+            'medicineChart',
+            {{ medicine_chart_labels | tojson }},
+            {{ medicine_chart_qty_values | tojson }},
+            {{ medicine_chart_cost_values | tojson }},
+            'كمية الاستهلاك',
+            'تكلفة الاستهلاك',
+            '#c62828',
+            '#6a1b9a'
+        );
+
+        buildConsumptionChart(
+            'fertilizerChart',
+            {{ fertilizer_chart_labels | tojson }},
+            {{ fertilizer_chart_qty_values | tojson }},
+            {{ fertilizer_chart_cost_values | tojson }},
+            'كمية الاستهلاك',
+            'تكلفة الاستهلاك',
+            '#ef6c00',
+            '#283593'
+        );
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل سجل صحة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2><i class="fas fa-edit"></i> تعديل سجل صحة</h2>
+            <hr>
+
+            <form method="POST" class="needs-validation">
+                <div class="card">
+                    <div class="card-body">
+                        <!-- معلومات الصنف -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="crop_id" class="form-label">الصنف <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="crop_id" name="crop_id" required>
+                                        <option value="">اختر الصنف</option>
+                                        {% for crop in crops %}
+                                        <option value="{{ crop.id }}" {% if crop.id == health_record.crop_id %}selected{% endif %}>{{ crop.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="health_date" class="form-label">تاريخ الفحص <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="health_date" name="health_date" value="{{ health_record.health_date.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- حالة الصحة -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="health_status" class="form-label">حالة الصحة <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="health_status" name="health_status" required onchange="updateFields()">
+                                        <option value="">اختر الحالة</option>
+                                        <option value="جيدة" {% if health_record.health_status == 'جيدة' %}selected{% endif %}>جيدة</option>
+                                        <option value="متوسطة" {% if health_record.health_status == 'متوسطة' %}selected{% endif %}>متوسطة</option>
+                                        <option value="حرجة" {% if health_record.health_status == 'حرجة' %}selected{% endif %}>حرجة</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="severity_percentage" class="form-label">نسبة الإصابة (%)</label>
+                                    <input type="number" class="form-control" id="severity_percentage" name="severity_percentage" min="0" max="100" value="{{ health_record.severity_percentage }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- المرض والآفة -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="disease_name" class="form-label">اسم المرض (إن وجد)</label>
+                                    <input type="text" class="form-control" id="disease_name" name="disease_name" value="{{ health_record.disease_name or '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="pest_name" class="form-label">اسم الآفة (إن وجدت)</label>
+                                    <input type="text" class="form-control" id="pest_name" name="pest_name" value="{{ health_record.pest_name or '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- العلاج والتعافي -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="treatment_applied" class="form-label">العلاج المطبق</label>
+                                    <textarea class="form-control" id="treatment_applied" name="treatment_applied" rows="3">{{ health_record.treatment_applied or '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="recovery_estimated_days" class="form-label">أيام التعافي المتوقعة</label>
+                                    <input type="number" class="form-control" id="recovery_estimated_days" name="recovery_estimated_days" min="0" value="{{ health_record.recovery_estimated_days or '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ملاحظات -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات إضافية</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2">{{ health_record.notes or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ التعديلات
+                    </button>
+                    <a href="{{ url_for('production.health_records') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateFields() {
+    const status = document.getElementById('health_status').value;
+    const severityInput = document.getElementById('severity_percentage');
+    
+    if (status === 'جيدة') {
+        severityInput.value = 0;
+    } else if (status === 'متوسطة') {
+        severityInput.value = 50;
+    } else if (status === 'حرجة') {
+        severityInput.value = 100;
+    }
+}
+</script>
+{% endblock %}

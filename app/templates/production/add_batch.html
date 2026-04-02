@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة دفعة إنتاج جديدة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <h2><i class="fas fa-plus"></i> إضافة دفعة إنتاج جديدة</h2>
+            <hr>
+
+            <form method="POST" class="needs-validation">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">المعلومات الأساسية</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="crop_id" class="form-label">الصنف <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="crop_id" name="crop_id" required>
+                                        <option value="">اختر الصنف</option>
+                                        {% for crop in crops %}
+                                        <option value="{{ crop.id }}">{{ crop.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="area_used" class="form-label">المساحة المستخدمة</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="area_used" name="area_used" step="0.01" placeholder="0.00">
+                                        <span class="input-group-text">متر مربع</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="planting_date" class="form-label">تاريخ الزراعة <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="planting_date" name="planting_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="expected_harvest_date" class="form-label">تاريخ الحصاد المتوقع</label>
+                                    <input type="date" class="form-control" id="expected_harvest_date" name="expected_harvest_date">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">تفاصيل التكاليف</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="soil_preparation_cost" class="form-label">تكلفة تجهيز التربة</label>
+                                    <input type="number" class="form-control" id="soil_preparation_cost" name="soil_preparation_cost" step="0.01" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="seeds_cost" class="form-label">تكلفة البذور</label>
+                                    <input type="number" class="form-control" id="seeds_cost" name="seeds_cost" step="0.01" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fertilizers_cost" class="form-label">تكلفة الأسمدة</label>
+                                    <input type="number" class="form-control" id="fertilizers_cost" name="fertilizers_cost" step="0.01" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="pesticides_cost" class="form-label">تكلفة المبيدات</label>
+                                    <input type="number" class="form-control" id="pesticides_cost" name="pesticides_cost" step="0.01" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="labor_cost" class="form-label">تكلفة العمالة</label>
+                                    <input type="number" class="form-control" id="labor_cost" name="labor_cost" step="0.01" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="watering_cost" class="form-label">تكلفة الري</label>
+                                    <input type="number" class="form-control" id="watering_cost" name="watering_cost" step="0.01" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="other_costs" class="form-label">تكاليف أخرى</label>
+                                    <input type="number" class="form-control" id="other_costs" name="other_costs" step="0.01" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>إجمالي التكاليف المتوقعة:</strong> <span id="total_costs">0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3 mt-3">
+                    <label for="notes" class="form-label">ملاحظات</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> إنشاء الدفعة
+                    </button>
+                    <a href="{{ url_for('production.production_batches') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const costFields = ['soil_preparation_cost', 'seeds_cost', 'fertilizers_cost', 'pesticides_cost', 'labor_cost', 'watering_cost', 'other_costs'];
+
+costFields.forEach(field => {
+    document.getElementById(field).addEventListener('change', calculateTotalCosts);
+});
+
+function calculateTotalCosts() {
+    let total = 0;
+    costFields.forEach(field => {
+        total += parseFloat(document.getElementById(field).value) || 0;
+    });
+    document.getElementById('total_costs').textContent = total.toFixed(2);
+}
+</script>
+{% endblock %}

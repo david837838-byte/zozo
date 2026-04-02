@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الإنتاج والأصناف{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- رأس الصفحة -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-0">
+                <i class="fas fa-industry"></i> إدارة الإنتاج والأصناف
+            </h1>
+            <small class="text-muted">إدارة محاصيلك والإنتاج والاستهلاك</small>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('production.add_production') }}" class="btn btn-success btn-sm">
+                <i class="fas fa-plus-circle"></i> إضافة إنتاج جديد
+            </a>
+            <a href="{{ url_for('production.crops') }}" class="btn btn-info btn-sm">
+                <i class="fas fa-leaf"></i> إدارة الأصناف
+            </a>
+        </div>
+    </div>
+
+    <!-- قائمة الخدمات المتقدمة -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="fas fa-star"></i> الخدمات المتقدمة</h5>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('production.production_batches') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-boxes"></i> دفعات الإنتاج
+                        </a>
+                        <a href="{{ url_for('production.health_records') }}" class="btn btn-outline-danger">
+                            <i class="fas fa-heartbeat"></i> صحة المحاصيل
+                        </a>
+                        <a href="{{ url_for('production.production_costs') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-money-bill"></i> التكاليف
+                        </a>
+                        <a href="{{ url_for('production.production_analytics') }}" class="btn btn-outline-success">
+                            <i class="fas fa-chart-bar"></i> التحليلات
+                        </a>
+                        <a href="{{ url_for('production.production_report') }}" class="btn btn-outline-info">
+                            <i class="fas fa-file-invoice"></i> التقارير
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الإحصائيات العامة -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 hover-shadow">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted mb-3">
+                        <i class="fas fa-leaf text-success"></i>
+                    </h5>
+                    <h3 class="text-success">{{ crops|length }}</h3>
+                    <small class="text-muted">عدد الأصناف</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 hover-shadow">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted mb-3">
+                        <i class="fas fa-cubes text-info"></i>
+                    </h5>
+                    <h3 class="text-info">{{ aggregated_productions|length }}</h3>
+                    <small class="text-muted">أصناف بها إنتاج</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 hover-shadow">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted mb-3">
+                        <i class="fas fa-boxes text-warning"></i>
+                    </h5>
+                    <h3 class="text-warning">{{ (aggregated_productions|map(attribute='total')|sum)|round(2) }}</h3>
+                    <small class="text-muted">إجمالي الإنتاج</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 hover-shadow">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted mb-3">
+                        <i class="fas fa-check-circle text-success"></i>
+                    </h5>
+                    <h3 class="text-success">{{ crops|selectattr('is_active', 'true')|list|length }}</h3>
+                    <small class="text-muted">أصناف نشطة</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الإنتاج حسب الجودة -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-bar"></i> ملخص الإنتاج حسب الجودة
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if aggregated_productions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr class="table-light">
+                                <th>الصنف</th>
+                                <th class="text-center">ممتازة</th>
+                                <th class="text-center">جيدة</th>
+                                <th class="text-center">متوسطة</th>
+                                <th class="text-center">منخفضة</th>
+                                <th class="text-center">إجمالي</th>
+                                <th class="text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prod_entry in aggregated_productions %}
+                            <tr>
+                                <td class="fw-bold">
+                                    <i class="fas fa-seedling"></i> {{ prod_entry.crop.name }}
+                                    {% if prod_entry.crop.variety %}
+                                        <br><small class="text-muted">({{ prod_entry.crop.variety }})</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">{{ (prod_entry.by_quality.get('ممتازة', 0))|round(2) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">{{ (prod_entry.by_quality.get('جيدة', 0))|round(2) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning">{{ (prod_entry.by_quality.get('متوسطة', 0))|round(2) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger">{{ (prod_entry.by_quality.get('منخفضة', 0))|round(2) }}</span>
+                                </td>
+                                <td class="text-center fw-bold">
+                                    <span class="badge bg-dark">{{ (prod_entry.total)|round(2) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('production.crop_productions', crop_id=prod_entry.crop.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="عرض الإنتاج">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> لا توجد سجلات إنتاج حتى الآن
+                    <a href="{{ url_for('production.add_production') }}" class="alert-link">ابدأ بإضافة إنتاج جديد</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- قائمة الأصناف المتاحة -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> قائمة الأصناف
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if crops %}
+                        <div class="row">
+                            {% for crop in crops %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card border hover-shadow h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="fas fa-leaf text-success"></i> {{ crop.name }}
+                                        </h5>
+                                        {% if crop.variety %}
+                                            <p class="card-text text-muted">
+                                                <small><strong>الصنف:</strong> {{ crop.variety }}</small>
+                                            </p>
+                                        {% endif %}
+                                        {% if crop.location %}
+                                            <p class="card-text text-muted">
+                                                <small><strong>الموقع:</strong> {{ crop.location }}</small>
+                                            </p>
+                                        {% endif %}
+                                        {% if crop.area %}
+                                            <p class="card-text text-muted">
+                                                <small><strong>المساحة:</strong> {{ crop.area }} {{ crop.unit or 'متر مربع' }}</small>
+                                            </p>
+                                        {% endif %}
+                                        <div class="mt-3">
+                                            <span class="badge {% if crop.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                                {% if crop.is_active %}نشط{% else %}موقوف{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-light">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('production.crop_productions', crop_id=crop.id) }}" 
+                                               class="btn btn-outline-primary" title="الإنتاج">
+                                                <i class="fas fa-cubes"></i>
+                                            </a>
+                                            <a href="{{ url_for('production.crop_consumptions', crop_id=crop.id) }}" 
+                                               class="btn btn-outline-warning" title="الاستهلاك">
+                                                <i class="fas fa-flask"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> لا توجد أصناف مسجلة حتى الآن
+                            <a href="{{ url_for('production.add_crop') }}" class="alert-link">ابدأ بإضافة صنف جديد</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-shadow {
+        transition: all 0.3s ease;
+    }
+    .hover-shadow:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,.15) !important;
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}

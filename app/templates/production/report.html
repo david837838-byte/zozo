@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير الإنتاج الشامل{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-file-invoice"></i> تقرير الإنتاج الشامل</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> طباعة التقرير
+            </button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>الصنف</th>
+                    <th>الكمية المنتجة</th>
+                    <th>إجمالي المبيعات</th>
+                    <th>التكاليف</th>
+                    <th>الربحية</th>
+                    <th>الإنتاجية<br/>(للمتر)</th>
+                    <th>عدد الدفعات</th>
+                    <th>الحالة الصحية</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for crop_item in crop_data %}
+                <tr>
+                    <td><strong>{{ crop_item.crop.name }}</strong></td>
+                    <td class="text-center">
+                        <span class="badge bg-info">{{ "%.2f"|format(crop_item.total_production) }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-success">{{ "%.2f"|format(crop_item.total_sales) }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-warning">{{ "%.2f"|format(crop_item.total_costs) }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {% if crop_item.profitability >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ "%.2f"|format(crop_item.profitability) }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        {{ "%.2f"|format(crop_item.productivity) }}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-secondary">{{ crop_item.batches }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if crop_item.health_status == 'جيدة' %}
+                            <span class="badge bg-success">{{ crop_item.health_status }}</span>
+                        {% elif crop_item.health_status == 'متوسطة' %}
+                            <span class="badge bg-warning">{{ crop_item.health_status }}</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ crop_item.health_status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-dark">
+                <tr>
+                    <th>الإجمالي</th>
+                    <th class="text-center">{{ "%.2f"|format(crop_data|map(attribute='total_production')|sum) }}</th>
+                    <th class="text-center">{{ "%.2f"|format(crop_data|map(attribute='total_sales')|sum) }}</th>
+                    <th class="text-center">{{ "%.2f"|format(crop_data|map(attribute='total_costs')|sum) }}</th>
+                    <th class="text-center">{{ "%.2f"|format(crop_data|map(attribute='profitability')|sum) }}</th>
+                    <th class="text-center">{{ "%.2f"|format(crop_data|map(attribute='productivity')|sum) }}</th>
+                    <th class="text-center">{{ crop_data|map(attribute='batches')|sum }}</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- الملخص التحليلي -->
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h3>الملخص التحليلي</h3>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">الأداء المالي</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>إجمالي الإيرادات:</strong></td>
+                            <td class="text-end">{{ "%.2f"|format(crop_data|map(attribute='total_sales')|sum) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>إجمالي التكاليف:</strong></td>
+                            <td class="text-end">{{ "%.2f"|format(crop_data|map(attribute='total_costs')|sum) }}</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><strong>الربح الإجمالي:</strong></td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(crop_data|map(attribute='profitability')|sum) }}</strong></td>
+                        </tr>
+                        {% set total_sales = crop_data|map(attribute='total_sales')|sum %}
+                        {% if total_sales > 0 %}
+                        <tr>
+                            <td><strong>هامش الربح:</strong></td>
+                            <td class="text-end">{{ "%.1f"|format(((crop_data|map(attribute='profitability')|sum) / total_sales) * 100) }}%</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">مؤشرات الأداء</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>عدد الأصناف المنتجة:</strong></td>
+                            <td class="text-end">{{ crop_data|length }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>إجمالي الإنتاج:</strong></td>
+                            <td class="text-end">{{ "%.2f"|format(crop_data|map(attribute='total_production')|sum) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>إجمالي الدفعات:</strong></td>
+                            <td class="text-end">{{ crop_data|map(attribute='batches')|sum }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>متوسط الإنتاجية:</strong></td>
+                            <td class="text-end">{{ "%.2f"|format(crop_data|map(attribute='productivity')|sum / (crop_data|length if crop_data|length > 0 else 1)) }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الملاحظات والتوصيات -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="alert alert-light border border-primary">
+                <h5><i class="fas fa-lightbulb"></i> ملاحظات وتوصيات</h5>
+                <ul>
+                    <li>متابعة الأصناف ذات الأداء المنخفض وتحسين كفاءتها</li>
+                    <li>تحليل البيانات التاريخية لتحسين التنبؤ بالإنتاج</li>
+                    <li>الاهتمام بالصحة الصحية للمحاصيل ومعالجة المشاكل مبكراً</li>
+                    <li>تحسين عمليات التكلفة والعمل على تقليل النفقات غير الضرورية</li>
+                    <li>تطوير استراتيجيات التسويق والمبيعات للأصناف الربحية</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn { display: none; }
+    body { margin: 0; padding: 0; }
+}
+</style>
+{% endblock %}

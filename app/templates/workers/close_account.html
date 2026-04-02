@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}تسكير حساب العامل{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>تسكير حساب العامل</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="alert alert-warning" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>تحذير:</strong> عند تسكير الحساب، سيتم نقل بيانات العامل إلى قسم الحسابات المسكرة ولن يكون العامل نشطاً.
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label"><strong>اسم العامل:</strong></label>
+                <p class="form-control-plaintext">{{ worker.name }}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><strong>رقم الهاتف:</strong></label>
+                <p class="form-control-plaintext">{{ worker.phone or '-' }}</p>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label"><strong>البريد الإلكتروني:</strong></label>
+                <p class="form-control-plaintext">{{ worker.email or '-' }}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><strong>نوع العامل:</strong></label>
+                <p class="form-control-plaintext">
+                    {% if worker.is_monthly %}
+                        شهري
+                    {% else %}
+                        بالساعة
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label"><strong>الراتب الشهري:</strong></label>
+                <p class="form-control-plaintext">{{ "%.2f"|format(worker.monthly_salary) }}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><strong>السعر بالساعة:</strong></label>
+                <p class="form-control-plaintext">{{ "%.2f"|format(worker.hourly_rate) }}</p>
+            </div>
+        </div>
+
+        <hr>
+
+        <form method="POST">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label for="closure_reason" class="form-label">سبب التسكير</label>
+                    <textarea class="form-control" id="closure_reason" name="closure_reason" rows="3" placeholder="أدخل سبب تسكير الحساب..."></textarea>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="final_balance" class="form-label">الرصيد النهائي</label>
+                    <input type="number" class="form-control" id="final_balance" name="final_balance" step="0.01" value="0" required>
+                    <small class="text-muted">أدخل القيمة النهائية المستحقة أو المدفوعة للعامل</small>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label for="notes" class="form-label">ملاحظات إضافية</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="أي ملاحظات أخرى..."></textarea>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من تسكير حساب هذا العامل؟')">
+                        <i class="bi bi-check-circle"></i> تسكير الحساب
+                    </button>
+                    <a href="{{ url_for('workers.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> رجوع
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

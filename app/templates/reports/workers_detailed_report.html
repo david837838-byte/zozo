@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير العمال التفصيلي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">تقرير العمال التفصيلي</h1>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm">العودة للتقارير</a>
+</div>
+
+{% include "reports/_report_filters_exports.html" %}
+
+<div class="row mb-4">
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي العمال</small><h5>{{ workers|length }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>النشطون</small><h5 class="text-success">{{ active_workers }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>المعطلون</small><h5 class="text-danger">{{ inactive_workers }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>شهري</small><h5>{{ monthly_workers }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>بالساعة</small><h5>{{ hourly_workers }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>سجلات حضور</small><h5>{{ attendance_count }}</h5></div></div></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">مؤشرات الساعات</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>إجمالي ساعات العمل:</strong> {{ "%.2f"|format(total_work_hours) }}</p>
+                <p class="mb-0"><strong>إجمالي ساعات المحركات:</strong> {{ "%.2f"|format(total_motor_hours) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">حالة الحضور</div>
+            <div class="card-body">
+                {% if attendance_status %}
+                    {% for status, count in attendance_status.items() %}
+                    <div class="d-flex justify-content-between border-bottom py-1">
+                        <span>{{ status }}</span>
+                        <strong>{{ count }}</strong>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">لا توجد بيانات حضور.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">أفضل العمال حسب ساعات العمل</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>العامل</th>
+                    <th>إجمالي الساعات</th>
+                    <th>عدد السجلات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in top_workers_by_hours %}
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td>{{ "%.2f"|format(row.hours) }}</td>
+                    <td>{{ row.entries }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">الحسابات المسكرة</div>
+    <div class="card-body">
+        <p class="mb-2"><strong>عدد الحسابات المسكرة:</strong> {{ closed_accounts|length }}</p>
+        <p class="mb-0"><strong>إجمالي الأرصدة النهائية:</strong> {{ "%.2f"|format(total_closed_balance) }}</p>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الاسم</th>
+                    <th>تاريخ التسكير</th>
+                    <th>الرصيد النهائي</th>
+                    <th>السبب</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in closed_accounts %}
+                <tr>
+                    <td>{{ account.worker_name }}</td>
+                    <td>{{ account.closure_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ "%.2f"|format(account.final_balance) }}</td>
+                    <td>{{ account.closure_reason or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted">لا توجد حسابات مسكرة.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

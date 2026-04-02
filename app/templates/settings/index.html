@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}الإعدادات{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>الإعدادات</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">اسم الموقع</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="update_site_name">
+                    <div class="mb-3">
+                        <label for="site_name" class="form-label">اسم الموقع</label>
+                        <input type="text" class="form-control" id="site_name" name="site_name" value="{{ site_name }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-save"></i> حفظ التغيير
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">إعدادات النسخ الاحتياطي</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="update_backup_settings">
+                    <div class="mb-3">
+                        <label for="backup_frequency" class="form-label">تكرار النسخ الاحتياطي التلقائي</label>
+                        <select class="form-select" id="backup_frequency" name="backup_frequency">
+                            <option value="none" {% if backup_frequency == 'none' %}selected{% endif %}>إيقاف</option>
+                            <option value="daily" {% if backup_frequency == 'daily' %}selected{% endif %}>يومي</option>
+                            <option value="weekly" {% if backup_frequency == 'weekly' %}selected{% endif %}>أسبوعي</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-arrow-repeat"></i> حفظ الإعداد
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">إدارة المستخدمين</h5>
+            </div>
+            <div class="card-body">
+                <p>إدارة حسابات المستخدمين وتعيين الصلاحيات</p>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('settings.users') }}" class="btn btn-primary w-100">
+                    <i class="bi bi-people"></i> إدارة المستخدمين
+                </a>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">الشراحات والكراتين</h5>
+            </div>
+            <div class="card-body">
+                <p>إدارة أنواع وتواريخ الشراحات المستخدمة</p>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('settings.boxes') }}" class="btn btn-success w-100">
+                    <i class="bi bi-box"></i> إدارة الشراحات
+                </a>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">سجل التدقيق</h5>
+            </div>
+            <div class="card-body">
+                <p>مراجعة من أضاف أو عدّل أو حذف ومتى تم ذلك</p>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('settings.audit_logs') }}" class="btn btn-outline-dark w-100">
+                    <i class="bi bi-journal-text"></i> عرض سجل التدقيق
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">نسخة احتياطية فورية</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">أنشئ نسخة احتياطية فورية لقاعدة البيانات وحمّلها مباشرة.</p>
+                <form method="POST" action="{{ url_for('settings.create_backup') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-success w-100">
+                        <i class="bi bi-download"></i> إنشاء وتحميل نسخة احتياطية
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer">
+                <small class="text-muted d-block">آخر نسخة: {{ last_backup_file or 'لا يوجد' }}</small>
+                <small class="text-muted d-block">آخر وقت نسخ: {{ last_backup_at.strftime('%Y-%m-%d %H:%M') if last_backup_at else 'لا يوجد' }}</small>
+                <small class="text-muted d-block">آخر وقت استرجاع: {{ last_restore_at.strftime('%Y-%m-%d %H:%M') if last_restore_at else 'لا يوجد' }}</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">استرجاع نسخة احتياطية</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-danger mb-2">تحذير: الاسترجاع سيستبدل قاعدة البيانات الحالية بالكامل.</p>
+                <form method="POST" action="{{ url_for('settings.restore_backup') }}" enctype="multipart/form-data" onsubmit="return confirm('هل أنت متأكد من استرجاع النسخة الاحتياطية؟ سيتم استبدال البيانات الحالية.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="backup_file" class="form-label">اختر ملف النسخة الاحتياطية</label>
+                        <input type="file" class="form-control" id="backup_file" name="backup_file" accept=".db,.sqlite,.sqlite3" required>
+                    </div>
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-upload"></i> استرجاع النسخة
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">أحدث النسخ الاحتياطية</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>اسم الملف</th>
+                    <th>الحجم (KB)</th>
+                    <th>تاريخ الإنشاء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backups %}
+                <tr>
+                    <td>{{ backup.name }}</td>
+                    <td>{{ (backup.size / 1024) | round(2) }}</td>
+                    <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center text-muted p-4">لا توجد نسخ احتياطية حالياً</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

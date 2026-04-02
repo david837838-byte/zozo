@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}التقرير السنوي لشراء الشراحات والكراتين{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>التقرير السنوي لشراء الشراحات والكراتين - {{ year }}</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('inventory.box_purchases') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<!-- ملخص الإحصائيات -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">إجمالي التكلفة</h5>
+                <h2 class="text-primary">{{ total_cost|round(2) }} $</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">عدد الوحدات</h5>
+                <h2 class="text-success">{{ total_quantity }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">عدد العمليات</h5>
+                <h2 class="text-info">{{ purchases|length }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- التفصيل حسب النوع -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">تفصيل الشراءات حسب النوع</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>نوع الشراحة/الكرتين</th>
+                    <th>عدد الوحدات</th>
+                    <th>التكلفة الكلية ($)</th>
+                    <th>عدد العمليات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for box_name, data in by_type.items() %}
+                <tr>
+                    <td><strong>{{ box_name }}</strong></td>
+                    <td>{{ data.quantity }}</td>
+                    <td><strong>{{ data.total_cost|round(2) }}</strong></td>
+                    <td>{{ data.purchases|length }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- جميع العمليات التفصيلية -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">تفاصيل جميع عمليات الشراء</h5>
+    </div>
+    {% if purchases %}
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>التاريخ</th>
+                    <th>اسم الشراحة/الكرتين</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة ($)</th>
+                    <th>التكلفة الكلية ($)</th>
+                    <th>الموردة</th>
+                    <th>رقم الفاتورة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase in purchases %}
+                <tr>
+                    <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ purchase.box_type.name }}</td>
+                    <td>{{ purchase.quantity }}</td>
+                    <td>{{ purchase.unit_price }}</td>
+                    <td><strong>{{ purchase.total_cost|round(2) }}</strong></td>
+                    <td>{{ purchase.supplier or '-' }}</td>
+                    <td>{{ purchase.invoice_number or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-center text-muted">
+        <p>لا توجد عمليات شراء للسنة {{ year }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="mt-4 mb-4 text-center">
+    <a href="{{ url_for('inventory.box_purchases') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> العودة للقائمة
+    </a>
+</div>
+{% endblock %}

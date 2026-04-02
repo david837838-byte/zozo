@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}الصفحة الرئيسية{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="jumbotron bg-light p-5 rounded">
+            <h1 class="display-4">مرحباً بك في {{ site_name }}</h1>
+            <p class="lead">نظام متكامل لإدارة جميع جوانب عمليات المزرعة</p>
+            {% if not current_user.is_authenticated %}
+            <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}" role="button">تسجيل الدخول</a>
+            {% else %}
+            <a class="btn btn-primary btn-lg" href="{{ url_for('home.dashboard') }}" role="button">الذهاب إلى لوحة التحكم</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-people display-4 text-primary"></i>
+                <h5 class="card-title mt-2">العمال</h5>
+                <p class="card-text">إدارة العمال والورديات وساعات العمل</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-boxes display-4 text-success"></i>
+                <h5 class="card-title mt-2">المخزون</h5>
+                <p class="card-text">إدارة الأدوية والأسمدة والمخزونات</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-plant display-4 text-warning"></i>
+                <h5 class="card-title mt-2">الإنتاج</h5>
+                <p class="card-text">تسجيل الإنتاج والمحاصيل والأصناف</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-calculator display-4 text-danger"></i>
+                <h5 class="card-title mt-2">المحاسبة</h5>
+                <p class="card-text">إدارة المبيعات والمصروفات والتقارير المالية</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

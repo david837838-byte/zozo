@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الحضور{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2>تعديل الحضور - {{ attendance.worker.name }}</h2>
+            
+            <form method="POST" class="mt-4">
+                <div class="card">
+                    <div class="card-body">
+                        <!-- معلومات العامل -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">اسم العامل</label>
+                                <input type="text" class="form-control" 
+                                       value="{{ attendance.worker.name }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">التاريخ</label>
+                                <input type="text" class="form-control" 
+                                       value="{{ attendance.attendance_date.strftime('%d/%m/%Y') }}" disabled>
+                            </div>
+                        </div>
+
+                        <!-- الحالة -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="حاضر" {% if attendance.status == 'حاضر' %}selected{% endif %}>حاضر</option>
+                                    <option value="غياب" {% if attendance.status == 'غياب' %}selected{% endif %}>غياب</option>
+                                    <option value="مرض" {% if attendance.status == 'مرض' %}selected{% endif %}>مرض</option>
+                                    <option value="إجازة" {% if attendance.status == 'إجازة' %}selected{% endif %}>إجازة</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label>
+                                    <input type="checkbox" id="is_present" name="is_present" 
+                                           {% if attendance.is_present %}checked{% endif %}>
+                                    الحضور الفعلي
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- الساعات المعملة -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="hours_worked" class="form-label">الساعات المعملة</label>
+                                <input type="number" step="0.5" class="form-control" id="hours_worked" 
+                                       name="hours_worked" value="{{ attendance.hours_worked }}" min="0">
+                            </div>
+                        </div>
+
+                        <!-- الملاحظات -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label for="notes" class="form-label">ملاحظات</label>
+                                <textarea class="form-control" id="notes" name="notes" 
+                                          rows="3">{{ attendance.notes or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check"></i> حفظ التعديلات
+                                </button>
+                                <a href="{{ url_for('workers.attendance') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> إلغاء
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

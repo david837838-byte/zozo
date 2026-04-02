@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}الحضور الشهري{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>الحضور الشهري</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('workers.attendance') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="year" class="form-label">السنة</label>
+                    <input type="number" name="year" id="year" class="form-control" value="{{ year }}" min="2000">
+                </div>
+                <div class="col-md-3">
+                    <label for="month" class="form-label">الشهر</label>
+                    <select name="month" id="month" class="form-select">
+                        <option value="1" {% if month == 1 %}selected{% endif %}>يناير</option>
+                        <option value="2" {% if month == 2 %}selected{% endif %}>فبراير</option>
+                        <option value="3" {% if month == 3 %}selected{% endif %}>مارس</option>
+                        <option value="4" {% if month == 4 %}selected{% endif %}>أبريل</option>
+                        <option value="5" {% if month == 5 %}selected{% endif %}>مايو</option>
+                        <option value="6" {% if month == 6 %}selected{% endif %}>يونيو</option>
+                        <option value="7" {% if month == 7 %}selected{% endif %}>يوليو</option>
+                        <option value="8" {% if month == 8 %}selected{% endif %}>أغسطس</option>
+                        <option value="9" {% if month == 9 %}selected{% endif %}>سبتمبر</option>
+                        <option value="10" {% if month == 10 %}selected{% endif %}>أكتوبر</option>
+                        <option value="11" {% if month == 11 %}selected{% endif %}>نوفمبر</option>
+                        <option value="12" {% if month == 12 %}selected{% endif %}>ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> عرض البيانات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">إجمالي الحاضرين</h6>
+                    <h3>{{ total_present }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">إجمالي قبل الدفعات</h6>
+                    <h3>${{ "%.2f"|format(total_salary_before_payments or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h6 class="card-title">المدفوع على الحساب</h6>
+                    <h3>${{ "%.2f"|format(total_worker_payments or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">المتبقي للرواتب</h6>
+                    <h3>${{ "%.2f"|format(total_salary or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if monthly_data %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>اسم العامل</th>
+                    <th>النوع</th>
+                    <th>أيام الحضور</th>
+                    <th>أيام الغياب</th>
+                    <th>إجمالي الساعات</th>
+                    <th>الإجمالي قبل الدفعات</th>
+                    <th>المدفوع على الحساب</th>
+                    <th>المتبقي</th>
+                    <th>الإجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for monthly in monthly_data %}
+                <tr>
+                    <td><strong>{{ monthly.worker.name }}</strong></td>
+                    <td>
+                        {% if monthly.worker.is_monthly %}
+                        <span class="badge bg-primary">شهري</span>
+                        {% else %}
+                        <span class="badge bg-secondary">ساعي</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-success">{{ monthly.present_days }}</span></td>
+                    <td><span class="badge bg-danger">{{ monthly.absent_days }}</span></td>
+                    <td>{{ "%.2f"|format(monthly.total_hours or 0) }}</td>
+                    <td>${{ "%.2f"|format(monthly.salary_before_worker_payments or monthly.net_salary or 0) }}</td>
+                    <td><span class="text-warning">${{ "%.2f"|format(monthly.worker_payment_deductions or 0) }}</span></td>
+                    <td>
+                        <strong class="{% if (monthly.remaining_salary or 0) >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ "%.2f"|format(monthly.remaining_salary or 0) }}
+                        </strong>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('workers.worker_salary_report', worker_id=monthly.worker.id, year=year, month=month) }}"
+                           class="btn btn-sm btn-info">
+                            <i class="fas fa-file-pdf"></i> تقرير
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        <i class="fas fa-info-circle"></i> لا توجد بيانات حضور لهذا الشهر.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الشراحات والكراتين{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-9">
+        <h1>الشراحات والكراتين</h1>
+    </div>
+    <div class="col-3">
+        <a href="{{ url_for('settings.add_box') }}" class="btn btn-primary float-end">
+            <i class="bi bi-plus-circle"></i> نوع جديد
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الاسم</th>
+                    <th>النوع</th>
+                    <th>السعة</th>
+                    <th>سعر الوحدة</th>
+                    <th>الموردة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for box in boxes %}
+                <tr>
+                    <td>{{ box.name }}</td>
+                    <td>
+                        <span class="badge bg-info">{{ box.box_type }}</span>
+                    </td>
+                    <td>{{ box.capacity }} {{ box.unit }}</td>
+                    <td>{{ box.cost_per_box }}</td>
+                    <td>{{ box.supplier or '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('settings.add_box_usage', box_id=box.id) }}" class="btn btn-sm btn-success">
+                            <i class="bi bi-plus-circle"></i> تسجيل استخدام
+                        </a>
+                        <a href="{{ url_for('settings.edit_box', box_id=box.id) }}" class="btn btn-sm btn-warning">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted p-4">لا توجد أنواع شراحات</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة استهلاك - {{ crop.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>
+            <i class="fas fa-flask-vial"></i> تسجيل استهلاك على الصنف
+        </h1>
+    </div>
+</div>
+
+<!-- معلومات الصنف المستهلك عليه - هيدر برز -->
+<div class="card border-3 border-success shadow mb-4">
+    <div class="card-header bg-success text-white p-3">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 class="mb-0">
+                    <i class="fas fa-leaf"></i> الصنف المستهلك عليه: 
+                    <strong>{{ crop.name }}</strong>
+                </h5>
+            </div>
+            <div class="col-md-4 text-end">
+                {% if crop.category == 'خضروات' %}
+                    <span class="badge bg-light text-success p-2">{{ crop.category }}</span>
+                {% elif crop.category == 'فواكه' %}
+                    <span class="badge bg-light text-danger p-2">{{ crop.category }}</span>
+                {% else %}
+                    <span class="badge bg-light text-muted p-2">{{ crop.category }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="text-muted small d-block mb-2">
+                    <i class="fas fa-map-marker-alt"></i> الموقع
+                </label>
+                <p class="mb-0"><strong>{{ crop.location or 'غير محدد' }}</strong></p>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="text-muted small d-block mb-2">
+                    <i class="fas fa-ruler"></i> المساحة
+                </label>
+                <p class="mb-0"><strong>{{ crop.area or '—' }} {{ crop.unit or '' }}</strong></p>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="text-muted small d-block mb-2">
+                    <i class="fas fa-calendar"></i> تاريخ الزراعة
+                </label>
+                <p class="mb-0">
+                    <strong>
+                        {% if crop.planting_date %}
+                            {{ crop.planting_date.strftime('%d-%m-%Y') }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+                </p>
+            </div>
+            {% if crop.variety %}
+            <div class="col-md-12 mt-2">
+                <label class="text-muted small d-block mb-2">
+                    <i class="fas fa-tag"></i> الصنف/النوع
+                </label>
+                <p class="mb-0"><strong>{{ crop.variety }}</strong></p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ملخص الاستهلاك -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center shadow-sm bg-light">
+            <div class="card-body">
+                <i class="fas fa-history text-info" style="font-size: 2rem;"></i>
+                <h5 class="card-title text-muted mt-2">سجلات الاستهلاك</h5>
+                <h3 class="text-info">{{ consumptions|length }}</h3>
+                <small class="text-muted">استهلاكات سابقة</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center shadow-sm bg-light">
+            <div class="card-body">
+                <i class="fas fa-weight" style="font-size: 2rem; color: #ff9800;"></i>
+                <h5 class="card-title text-muted mt-2">إجمالي المستهلك</h5>
+                <h3 class="text-warning">
+                    {% set total_qty = consumptions|sum(attribute='quantity_used') %}
+                    {{ "%.2f"|format(total_qty) if total_qty else 0 }}
+                </h3>
+                <small class="text-muted">وحدة</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center shadow-sm bg-light">
+            <div class="card-body">
+                <i class="fas fa-calendar-check" style="font-size: 2rem; color: #28a745;"></i>
+                <h5 class="card-title text-muted mt-2">آخر استهلاك</h5>
+                <h5 class="text-success">
+                    {% if consumptions %}
+                        {{ consumptions[0].consumption_date.strftime('%d-%m-%Y') }}
+                    {% else %}
+                        لا يوجد
+                    {% endif %}
+                </h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نموذج إضافة الاستهلاك -->
+<div class="card shadow">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-plus-circle"></i> إضافة استهلاك جديد على: <strong>{{ crop.name }}</strong>
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" class="needs-validation">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="inventory_item_id" class="form-label">
+                        <strong>💊 الأدوية/الأسمدة/المستلزمات</strong>
+                    </label>
+                    <select class="form-select" id="inventory_item_id" name="inventory_item_id" required>
+                        <option value="" selected>-- اختر الصنف المستهلك --</option>
+                        {% for item in inventory_items %}
+                        <option value="{{ item.id }}">
+                            {{ item.name }} 
+                            <small>({{ item.category }}) - الكمية المتاحة: {{ item.quantity }} {{ item.unit }}</small>
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted d-block mt-1">اختر المنتج أو المادة المستهلكة على صنف <strong>{{ crop.name }}</strong></small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="consumption_date" class="form-label">
+                        <strong>📅 تاريخ الاستخدام</strong>
+                    </label>
+                    <input type="date" class="form-control" id="consumption_date" name="consumption_date" required>
+                    <small class="text-muted d-block mt-1">متى تم استخدام هذا المنتج على {{ crop.name }}؟</small>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="quantity_used" class="form-label">
+                        <strong>📦 الكمية المستخدمة</strong>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="quantity_used" name="quantity_used" step="0.01" placeholder="0.00" required>
+                        <span class="input-group-text">وحدة</span>
+                    </div>
+                    <small class="text-muted d-block mt-1">كم وحدة تم استهلاكها على {{ crop.name }}؟</small>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">
+                    <strong>📝 ملاحظات (اختياري)</strong>
+                </label>
+                <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="أضف أي ملاحظات إضافية عن الاستهلاك على {{ crop.name }}..."></textarea>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-check-circle"></i> تسجيل الاستهلاك على {{ crop.name }}
+                </button>
+                <a href="{{ url_for('production.crops') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times-circle"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- سجل الاستهلاكات السابقة على هذا الصنف -->
+{% if consumptions %}
+<div class="card shadow mt-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+            <i class="fas fa-history"></i> سجل الاستهلاكات السابقة على الصنف: <strong>{{ crop.name }}</strong>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="30%">
+                            <i class="fas fa-box"></i> المنتج المستهلك
+                        </th>
+                        <th width="15%">
+                            <i class="fas fa-tag"></i> النوع
+                        </th>
+                        <th width="15%">
+                            <i class="fas fa-weight"></i> الكمية
+                        </th>
+                        <th width="12%">
+                            <i class="fas fa-calendar"></i> التاريخ
+                        </th>
+                        <th width="28%">
+                            <i class="fas fa-note-sticky"></i> ملاحظات
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for consumption in consumptions %}
+                    <tr class="align-middle">
+                        <td>
+                            <strong style="color: #28a745;">{{ consumption.inventory_item.name }}</strong>
+                            <small class="d-block text-muted">على: <strong>{{ crop.name }}</strong></small>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ consumption.inventory_item.category }}</span>
+                        </td>
+                        <td>
+                            <strong class="text-warning">{{ "%.2f"|format(consumption.quantity_used) }}</strong>
+                            <small class="text-muted">{{ consumption.inventory_item.unit }}</small>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ consumption.consumption_date.strftime('%d-%m-%Y') }}</small>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {% if consumption.notes %}
+                                    {{ consumption.notes[:45] }}{% if consumption.notes|length > 45 %}...{% endif %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- معلومات إضافية -->
+<div class="alert alert-info mt-4" role="alert">
+    <i class="fas fa-lightbulb"></i>
+    <strong>نصيحة:</strong> عند تسجيل الاستهلاك على <strong>{{ crop.name }}</strong>، تأكد من تحديد الكمية المشروعة والصحيحة حتى يتمكن النظام من تتبع المخزون بدقة.
+</div>
+{% endblock %}

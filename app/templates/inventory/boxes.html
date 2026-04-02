@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الشراحات والكراتين{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>الشراحات والكراتين</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('inventory.add_box') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> إضافة نوع جديد
+        </a>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('inventory.box_purchases') }}" class="btn btn-info">
+                <i class="bi bi-receipt"></i> سجل الشراءات
+            </a>
+            <a href="{{ url_for('inventory.box_purchases_report') }}" class="btn btn-primary">
+                <i class="bi bi-bar-chart"></i> التقرير السنوي
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if boxes %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>الاسم</th>
+                <th>النوع</th>
+                <th>السعة</th>
+                <th>التكلفة</th>
+                <th>الموردة</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for box in boxes %}
+            <tr>
+                <td><strong>{{ box.name }}</strong></td>
+                <td>
+                    <span class="badge bg-info">{{ box.box_type }}</span>
+                </td>
+                <td>
+                    {% if box.capacity %}
+                        {{ box.capacity }} {{ box.unit or '' }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ box.cost_per_box }} $</td>
+                <td>{{ box.supplier or '-' }}</td>
+                <td>
+                    <a href="{{ url_for('inventory.add_box_purchase', box_id=box.id) }}" 
+                       class="btn btn-sm btn-success" title="تسجيل شراء">
+                        <i class="bi bi-cart-plus"></i> شراء
+                    </a>
+                    <a href="{{ url_for('inventory.add_box_usage', box_id=box.id) }}" 
+                       class="btn btn-sm btn-primary" title="تسجيل استخدام">
+                        <i class="bi bi-plus-square"></i> استخدام
+                    </a>
+                    <a href="{{ url_for('inventory.edit_box', box_id=box.id) }}" 
+                       class="btn btn-sm btn-warning" title="تعديل">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="POST" action="{{ url_for('inventory.delete_box', box_id=box.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا النوع؟');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-sm btn-danger" title="حذف">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> العودة للمخزون
+    </a>
+</div>
+{% else %}
+<div class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle"></i> لا توجد أنواع شراحات أو كراتين مضافة حتى الآن.
+    <a href="{{ url_for('inventory.add_box') }}">أضف نوع جديد الآن</a>
+</div>
+{% endif %}
+{% endblock %}

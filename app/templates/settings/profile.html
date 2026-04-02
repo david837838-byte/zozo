@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}ملفي الشخصي{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-circle"></i> ملفي الشخصي
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3 text-center">
+                            <div class="avatar-wrapper">
+                                <i class="fas fa-user-circle" style="font-size: 80px; color: #007bff;"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="30%">اسم المستخدم:</th>
+                                    <td>{{ user.username }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الاسم الكامل:</th>
+                                    <td>{{ user.full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>البريد الإلكتروني:</th>
+                                    <td>{{ user.email }}</td>
+                                </tr>
+                                <tr>
+                                    <th>نوع الحساب:</th>
+                                    <td>
+                                        {% if user.is_admin %}
+                                            <span class="badge bg-danger">إداري</span>
+                                        {% else %}
+                                            <span class="badge bg-info">مستخدم عادي</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>حالة الحساب:</th>
+                                    <td>
+                                        {% if user.is_active %}
+                                            <span class="badge bg-success">نشط</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">معطل</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ التسجيل:</th>
+                                    <td>{{ user.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- الصلاحيات -->
+                    {% if not user.is_admin and (user.can_manage_workers or user.can_manage_inventory or user.can_manage_production or user.can_manage_sales or user.can_manage_accounting or user.can_manage_reports or user.can_delete or user.can_edit) %}
+                    <hr>
+                    <h5 class="mb-3">
+                        <i class="fas fa-key"></i> صلاحياتي
+                    </h5>
+                    <div class="row">
+                        {% if user.can_manage_workers %}<div class="col-md-6 mb-2"><span class="badge bg-success">إدارة العمال</span></div>{% endif %}
+                        {% if user.can_manage_inventory %}<div class="col-md-6 mb-2"><span class="badge bg-success">إدارة المخزون</span></div>{% endif %}
+                        {% if user.can_manage_production %}<div class="col-md-6 mb-2"><span class="badge bg-success">إدارة الإنتاج</span></div>{% endif %}
+                        {% if user.can_manage_sales %}<div class="col-md-6 mb-2"><span class="badge bg-success">إدارة المبيعات</span></div>{% endif %}
+                        {% if user.can_manage_accounting %}<div class="col-md-6 mb-2"><span class="badge bg-success">إدارة المحاسبة</span></div>{% endif %}
+                        {% if user.can_manage_reports %}<div class="col-md-6 mb-2"><span class="badge bg-success">عرض التقارير</span></div>{% endif %}
+                        {% if user.can_delete %}<div class="col-md-6 mb-2"><span class="badge bg-warning">حذف البيانات</span></div>{% endif %}
+                        {% if user.can_edit %}<div class="col-md-6 mb-2"><span class="badge bg-warning">تعديل البيانات</span></div>{% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- الأزرار -->
+                    <hr>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('settings.edit_profile') }}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> تعديل بيانات الملف الشخصي
+                        </a>
+                        <a href="{{ url_for('auth.change_password') }}" class="btn btn-warning">
+                            <i class="fas fa-lock"></i> تغيير كلمة المرور
+                        </a>
+                        <a href="{{ url_for('home.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> العودة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}سجلات صحة المحاصيل{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-heartbeat"></i> سجلات صحة المحاصيل</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('production.add_health_record') }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> إضافة سجل صحة جديد
+            </a>
+        </div>
+    </div>
+
+    {% if critical_issues %}
+    <div class="alert alert-danger" role="alert">
+        <h5><i class="fas fa-exclamation-triangle"></i> تنبيهات حرجة</h5>
+        <ul class="mb-0">
+            {% for issue in critical_issues %}
+            <li>
+                <strong>{{ issue.crop.name }}</strong> - 
+                {% if issue.disease_name %}مرض: {{ issue.disease_name }}{% endif %}
+                {% if issue.pest_name %}آفة: {{ issue.pest_name }}{% endif %}
+                ({{ issue.severity_percentage }}%)
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">إجمالي السجلات</h5>
+                    <h3 class="text-primary">{{ health_records|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">حالات حرجة</h5>
+                    <h3 class="text-danger">{{ critical_issues|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">حالات جيدة</h5>
+                    <h3 class="text-success">{{ health_records|selectattr('health_status', 'equalto', 'جيدة')|list|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">حالات متوسطة</h5>
+                    <h3 class="text-warning">{{ health_records|selectattr('health_status', 'equalto', 'متوسطة')|list|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>الصنف</th>
+                    <th>التاريخ</th>
+                    <th>الحالة</th>
+                    <th>المرض/الآفة</th>
+                    <th>نسبة الإصابة</th>
+                    <th>العلاج</th>
+                    <th>أيام التعافي</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in health_records %}
+                <tr>
+                    <td><strong>{{ record.crop.name }}</strong></td>
+                    <td>{{ record.health_date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if record.health_status == 'جيدة' %}
+                            <span class="badge bg-success">{{ record.health_status }}</span>
+                        {% elif record.health_status == 'متوسطة' %}
+                            <span class="badge bg-warning">{{ record.health_status }}</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ record.health_status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if record.disease_name %}
+                            <small class="text-muted">مرض: {{ record.disease_name }}</small><br>
+                        {% endif %}
+                        {% if record.pest_name %}
+                            <small class="text-muted">آفة: {{ record.pest_name }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ record.severity_percentage }}%</td>
+                    <td><small>{{ record.treatment_applied[:50] if record.treatment_applied else '-' }}</small></td>
+                    <td>
+                        {% if record.recovery_estimated_days %}
+                            {{ record.recovery_estimated_days }} يوم
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('production.edit_health_record', health_id=record.id) }}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i> تعديل
+                        </a>
+                        <form method="POST" action="{{ url_for('production.delete_health_record', health_id=record.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل تريد فعلاً حذف هذا السجل؟');">
+                                <i class="fas fa-trash"></i> حذف
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

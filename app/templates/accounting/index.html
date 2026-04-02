@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}المحاسبة - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>المحاسبة</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <p class="card-text">إجمالي الدخل</p>
+                <h3 class="mb-0">{{ total_income|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <p class="card-text">إجمالي المصروفات</p>
+                <h3 class="mb-0">{{ total_expenses|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if net >= 0 %}bg-info{% else %}bg-warning{% endif %} text-white">
+            <div class="card-body">
+                <p class="card-text">الفائض/الخسارة</p>
+                <h3 class="mb-0">{{ net|round(0) }} $</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">المعاملات المحاسبية</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>البيان</th>
+                            <th>النوع</th>
+                            <th>المبلغ</th>
+                            <th>الفئة</th>
+                            <th>المرجع</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.transaction_date }}</td>
+                            <td>
+                                {{ transaction.description }}
+                                {% if transaction.notes and 'worker_payment_kind=loan' in transaction.notes %}
+                                    <span class="badge bg-warning text-dark ms-1">سلفة</span>
+                                {% elif transaction.notes and 'worker_payment_kind=advance' in transaction.notes %}
+                                    <span class="badge bg-info ms-1">دفعة على الحساب</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if transaction.display_transaction_type == 'دخل' %}
+                                    <span class="badge bg-success">دخل</span>
+                                {% else %}
+                                    <span class="badge bg-danger">مصروف</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ transaction.amount }}</td>
+                            <td>{{ transaction.category.name if transaction.category else '-' }}</td>
+                            <td>
+                                {% if transaction.display_reference_type == 'عامل' %}
+                                    {% if transaction.reference_id %}
+                                        {% if worker_lookup.get(transaction.reference_id) %}
+                                            <a href="{{ url_for('workers.view_worker', worker_id=transaction.reference_id) }}">
+                                                {{ worker_lookup.get(transaction.reference_id) }}
+                                            </a>
+                                        {% else %}
+                                            عامل محذوف #{{ transaction.reference_id }}
+                                        {% endif %}
+                                    {% else %}
+                                        عامل
+                                    {% endif %}
+                                {% elif transaction.display_reference_type %}
+                                    {{ transaction.display_reference_type }}{% if transaction.reference_id %} #{{ transaction.reference_id }}{% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('accounting.edit_transaction', transaction_id=transaction.id) }}" class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil"></i> تعديل
+                                </a>
+                                <form method="POST" action="{{ url_for('accounting.delete_transaction', transaction_id=transaction.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد؟')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i> حذف
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted p-4">لا توجد معاملات</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">إجراءات سريعة</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('accounting.add_transaction') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-plus-circle"></i> إضافة معاملة جديدة
+                </a>
+                <a href="{{ url_for('accounting.categories') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-tag"></i> إدارة فئات المصروفات
+                </a>
+                <a href="{{ url_for('reports.financial_report') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-pdf"></i> التقرير المالي الشامل
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

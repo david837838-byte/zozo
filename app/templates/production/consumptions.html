@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}استهلاكات الأدوية والأسمدة والمشتقات النفطية{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>
+                <i class="fas fa-flask"></i> استهلاكات الأدوية والأسمدة والمشتقات النفطية
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('production.add_general_consumption') }}" class="btn btn-success btn-sm">
+                <i class="fas fa-plus-circle"></i> إضافة استهلاك جديد
+            </a>
+            <a href="{{ url_for('production.index') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">إجمالي الاستهلاكات</h5>
+                    <h3 class="text-warning">{{ consumptions|length }}</h3>
+                    <small class="text-muted">سجل</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">إجمالي الكمية المستهلكة</h5>
+                    <h3 class="text-danger">{{ (consumptions|map(attribute='quantity_used')|sum)|round(2) }}</h3>
+                    <small class="text-muted">وحدة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">أنواع الاستهلاك</h5>
+                    <h3 class="text-info">3</h3>
+                    <small class="text-muted">أدوية، أسمدة، مشتقات نفطية</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">آخر استهلاك</h5>
+                    <h4>
+                        {% if consumptions|length > 0 %}
+                            {{ consumptions[0].consumption_date.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-warning text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-table"></i> قائمة الاستهلاكات
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if consumptions %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-light">
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>اسم المادة</th>
+                                <th>نوع الاستهلاك</th>
+                                <th class="text-center">الكمية</th>
+                                <th>الوحدة</th>
+                                <th>الملاحظات</th>
+                                <th style="width: 100px;">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for consumption in consumptions %}
+                            <tr>
+                                <td class="fw-bold">{{ consumption.consumption_date.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ consumption.inventory_item.name }}</td>
+                                <td>
+                                    <span class="badge {% if consumption.consumption_type == 'أدوية' %}bg-danger{% elif consumption.consumption_type == 'أسمدة' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ consumption.consumption_type }}
+                                    </span>
+                                </td>
+                                <td class="text-center">{{ consumption.quantity_used }}</td>
+                                <td><span class="badge bg-secondary">{{ consumption.inventory_item.unit }}</span></td>
+                                <td>
+                                    {% if consumption.notes %}
+                                        <small>{{ consumption.notes[:40] }}{% if consumption.notes|length > 40 %}...{% endif %}</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('production.edit_general_consumption', consumption_id=consumption.id) }}"
+                                           class="btn btn-outline-warning" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('production.delete_general_consumption', consumption_id=consumption.id) }}"
+                                              style="display:inline;" onsubmit="return confirm('هل أنت متأكد؟');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                            <button type="submit" class="btn btn-outline-danger" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> لا توجد استهلاكات مسجلة حتى الآن
+                    <a href="{{ url_for('production.add_general_consumption') }}" class="alert-link">ابدأ بإضافة استهلاك جديد</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

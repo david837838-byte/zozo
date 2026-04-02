@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير المخزون التفصيلي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">تقرير المخزون التفصيلي</h1>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm">العودة للتقارير</a>
+</div>
+
+{% include "reports/_report_filters_exports.html" %}
+
+<div class="row mb-4">
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>العناصر</small><h5>{{ items|length }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>نفد المخزون</small><h5 class="text-danger">{{ out_of_stock_items|length }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>مخزون منخفض</small><h5 class="text-warning">{{ low_stock_items|length }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>قيمة المخزون</small><h6>{{ "%.2f"|format(stock_value) }}</h6></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>كمية دخول</small><h5 class="text-success">{{ "%.2f"|format(in_qty) }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>كمية خروج</small><h5 class="text-danger">{{ "%.2f"|format(out_qty) }}</h5></div></div></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">ملخص المشتريات</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>إجمالي الكمية المشتراة:</strong> {{ "%.2f"|format(purchase_total_qty) }}</p>
+                <p class="mb-0"><strong>إجمالي تكلفة المشتريات:</strong> {{ "%.2f"|format(purchase_total_cost) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">ملخص الصناديق والكرتون</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>عدد الأنواع:</strong> {{ box_types_count }}</p>
+                <p class="mb-1"><strong>مشتريات الصناديق (كمية/تكلفة):</strong> {{ "%.2f"|format(box_purchases_total_qty) }} / {{ "%.2f"|format(box_purchases_total_cost) }}</p>
+                <p class="mb-0"><strong>استخدام الصناديق (كمية/تكلفة):</strong> {{ "%.2f"|format(box_usage_total_qty) }} / {{ "%.2f"|format(box_usage_total_cost) }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">ملخص المخزون حسب الفئة</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>الفئة</th><th>عدد العناصر</th><th>إجمالي الكمية</th></tr></thead>
+            <tbody>
+                {% for row in category_summary %}
+                <tr><td>{{ row.category }}</td><td>{{ row.items_count }}</td><td>{{ "%.2f"|format(row.total_qty) }}</td></tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">أكثر المواد استهلاكًا (استهلاك عام)</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr><th>المادة</th><th>الفئة</th><th>الكمية</th><th>عدد السجلات</th></tr></thead>
+            <tbody>
+                {% for row in top_consumed_items %}
+                <tr><td>{{ row.item_name }}</td><td>{{ row.category }}</td><td>{{ "%.2f"|format(row.used_qty) }}</td><td>{{ row.entries }}</td></tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">آخر مشتريات المخزون</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>التاريخ</th><th>العنصر</th><th>الكمية</th><th>التكلفة</th></tr></thead>
+                    <tbody>
+                        {% for p in recent_purchases %}
+                        <tr>
+                            <td>{{ p.purchase_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ p.item.name }}</td>
+                            <td>{{ "%.2f"|format(p.quantity) }}</td>
+                            <td>{{ "%.2f"|format(p.total_cost) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">آخر حركات المخزون</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>التاريخ</th><th>العنصر</th><th>النوع</th><th>الكمية</th></tr></thead>
+                    <tbody>
+                        {% for t in recent_transactions %}
+                        <tr>
+                            <td>{{ t.transaction_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ t.item.name }}</td>
+                            <td>{{ t.transaction_type }}</td>
+                            <td>{{ "%.2f"|format(t.quantity) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">آخر سجلات الاستهلاك العام</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>التاريخ</th><th>المادة</th><th>النوع</th><th>الكمية</th></tr></thead>
+            <tbody>
+                {% for c in recent_general_consumptions %}
+                <tr>
+                    <td>{{ c.consumption_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ c.inventory_item.name }}</td>
+                    <td>{{ c.consumption_type }}</td>
+                    <td>{{ "%.2f"|format(c.quantity_used) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
