@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}التقرير الأسبوعي الذكي{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-bar-chart"></i> التقرير الأسبوعي الذكي</h2>
+            <p class="text-muted mb-0">ملخص تلقائي لآخر 7 أيام: صحة المحاصيل، المخزون، والتنبيهات.</p>
+        </div>
+        <a href="{{ url_for('ai_assistant.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-right"></i> العودة للمساعد
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">سجلات الأسبوع</h6>
+                    <h3 class="text-primary mb-0">{{ analytics.weekly_total_health_cases }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">حالات حرجة</h6>
+                    <h3 class="text-danger mb-0">{{ analytics.weekly_critical_cases }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">نواقص المخزون</h6>
+                    <h3 class="text-warning mb-0">{{ analytics.low_stock_count + analytics.out_of_stock_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">قريبة الانتهاء</h6>
+                    <h3 class="text-dark mb-0">{{ analytics.expiring_soon_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-file-earmark-text"></i> الملخص الذكي</div>
+                <div class="card-body">
+                    <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ auto_summary }}</pre>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-activity"></i> أكثر المشاكل هذا الأسبوع</div>
+                <div class="card-body">
+                    {% if analytics.weekly_top_diseases %}
+                        <ul class="mb-0">
+                            {% for item in analytics.weekly_top_diseases %}
+                                <li>{{ item.name }} ({{ item.count }})</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">لا توجد بيانات كافية.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-bell"></i> تنبيهات تلقائية</div>
+                <div class="card-body">
+                    {% if analytics.auto_alerts %}
+                        <ul class="mb-0">
+                            {% for alert in analytics.auto_alerts[:8] %}
+                                <li>
+                                    <strong>{{ alert.title }}</strong><br>
+                                    <small class="text-muted">{{ alert.details }}</small>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">لا توجد تنبيهات حالياً.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

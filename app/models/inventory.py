@@ -4,6 +4,7 @@ from datetime import datetime
 class InventoryItem(db.Model):
     """نموذج عنصر المخزون (الأدوية والأسمدة والمشتقات النفطية)"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     name = db.Column(db.String(120), nullable=False)  # اسم المنتج
     category = db.Column(db.String(50), nullable=False)  # أدوية أو أسمدة أو مشتقات نفطية
     quantity = db.Column(db.Float, nullable=False)  # الكمية
@@ -11,6 +12,9 @@ class InventoryItem(db.Model):
     purchase_price = db.Column(db.Float, nullable=False)
     supplier = db.Column(db.String(120), nullable=True)
     expiry_date = db.Column(db.Date, nullable=True)
+    active_ingredient = db.Column(db.String(200), nullable=True)  # المادة الفعالة
+    common_usage = db.Column(db.Text, nullable=True)  # الاستخدام الزراعي المعتاد
+    safety_notes = db.Column(db.Text, nullable=True)  # ملاحظات الأمان/فترة الأمان
     notes = db.Column(db.Text, nullable=True)
     
     # Relations
@@ -28,6 +32,7 @@ class InventoryItem(db.Model):
 class InventoryTransaction(db.Model):
     """نموذج معاملات المخزون"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
     transaction_type = db.Column(db.String(50), nullable=False)  # دخول أو خروج
     quantity = db.Column(db.Float, nullable=False)
@@ -42,6 +47,7 @@ class InventoryTransaction(db.Model):
 class GeneralConsumption(db.Model):
     """نموذج استهلاك الأدوية والأسمدة والمشتقات النفطية"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
     quantity_used = db.Column(db.Float, nullable=False)
     consumption_type = db.Column(db.String(50), nullable=False)  # نوع الاستهلاك
@@ -60,6 +66,7 @@ class GeneralConsumption(db.Model):
 class InventoryPurchase(db.Model):
     """نموذج شراء عناصر المخزون (الأدوية والأسمدة والمشتقات النفطية)"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
     quantity = db.Column(db.Float, nullable=False)  # كمية الشراء
     unit_price = db.Column(db.Float, nullable=False)  # سعر الوحدة

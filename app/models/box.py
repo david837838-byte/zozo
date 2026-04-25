@@ -4,6 +4,7 @@ from datetime import datetime
 class BoxType(db.Model):
     """نموذج أنواع الشراحات والكراتين"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
     box_type = db.Column(db.String(50), nullable=False)  # كبير، صغير، نصفي، فريز، قرقوز
     capacity = db.Column(db.Float, nullable=True)  # سعة الصندوق
@@ -24,6 +25,7 @@ class BoxType(db.Model):
 class BoxUsage(db.Model):
     """نموذج استخدام الشراحات والكراتين"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     box_type_id = db.Column(db.Integer, db.ForeignKey('box_type.id'), nullable=False)
     quantity_used = db.Column(db.Integer, nullable=False)
     usage_date = db.Column(db.Date, nullable=False)
@@ -47,6 +49,7 @@ class BoxUsage(db.Model):
 class BoxPurchase(db.Model):
     """نموذج شراء الشراحات والكراتين"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     box_type_id = db.Column(db.Integer, db.ForeignKey('box_type.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)  # عدد الوحدات المشتراة
     unit_price = db.Column(db.Float, nullable=False)  # سعر الوحدة

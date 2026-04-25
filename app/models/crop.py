@@ -8,6 +8,7 @@ class Crop(db.Model):
         UniqueConstraint('name', 'variety', name='uix_crop_name_variety'),
     )
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     name = db.Column(db.String(120), nullable=False)
     category = db.Column(db.String(50), nullable=False)  # فواكه أو خضروات
     variety = db.Column(db.String(120), nullable=True)  # الصنف
@@ -65,6 +66,7 @@ class Crop(db.Model):
 class CropConsumption(db.Model):
     """نموذج استهلاك الأدوية والأسمدة على الأصناف"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     crop_id = db.Column(db.Integer, db.ForeignKey('crop.id'), nullable=False)
     inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
     quantity_used = db.Column(db.Float, nullable=False)
@@ -82,6 +84,7 @@ class CropConsumption(db.Model):
 class Production(db.Model):
     """نموذج الإنتاج"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     crop_id = db.Column(db.Integer, db.ForeignKey('crop.id'), nullable=False)
     production_date = db.Column(db.Date, nullable=False)
     quantity = db.Column(db.Float, nullable=False)
@@ -98,6 +101,7 @@ class Production(db.Model):
 class Sales(db.Model):
     """نموذج المبيعات"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     crop_id = db.Column(db.Integer, db.ForeignKey('crop.id'), nullable=False)
     sale_date = db.Column(db.Date, nullable=False)
     quantity = db.Column(db.Float, nullable=False)
@@ -118,6 +122,7 @@ class Sales(db.Model):
 class CropHealth(db.Model):
     """نموذج تتبع صحة الصنف والأمراض"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     crop_id = db.Column(db.Integer, db.ForeignKey('crop.id'), nullable=False)
     health_date = db.Column(db.Date, nullable=False)
     health_status = db.Column(db.String(50), nullable=False)  # جيدة، متوسطة، حرجة
@@ -137,6 +142,7 @@ class CropHealth(db.Model):
 class ProductionBatch(db.Model):
     """نموذج دفعات الإنتاج (المحاصيل)"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     crop_id = db.Column(db.Integer, db.ForeignKey('crop.id'), nullable=False)
     batch_number = db.Column(db.String(50), nullable=False, unique=True)
     planting_date = db.Column(db.Date, nullable=False)
@@ -173,6 +179,7 @@ class ProductionBatch(db.Model):
 class ProductionCost(db.Model):
     """نموذج تتبع تكاليف الإنتاج"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     crop_id = db.Column(db.Integer, db.ForeignKey('crop.id'), nullable=False)
     cost_date = db.Column(db.Date, nullable=False)
     cost_type = db.Column(db.String(50), nullable=False)  # تجهيز التربة، بذور، أسمدة، مبيدات، عمالة، كهرباء/ماء، أخرى
@@ -193,6 +200,7 @@ class ProductionCost(db.Model):
 class ProductionStage(db.Model):
     """نموذج مراحل الإنتاج والنمو"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     crop_id = db.Column(db.Integer, db.ForeignKey('crop.id'), nullable=False)
     stage_name = db.Column(db.String(120), nullable=False)  # التشريق، النمو الخضري، التزهير، العقد، النضج
     stage_order = db.Column(db.Integer, nullable=False)  # ترتيب المرحلة
@@ -219,6 +227,7 @@ class ProductionStage(db.Model):
 class ProductionInventory(db.Model):
     """نموذج مخزن الإنتاج (المنتجات المخزنة)"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     crop_id = db.Column(db.Integer, db.ForeignKey('crop.id'), nullable=False)
     production_id = db.Column(db.Integer, db.ForeignKey('production.id'), nullable=True)
     storage_location = db.Column(db.String(120), nullable=True)  # موقع التخزين

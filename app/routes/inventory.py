@@ -60,6 +60,9 @@ def add_item():
             purchase_price=float(request.form.get('purchase_price')),
             supplier=request.form.get('supplier'),
             expiry_date=datetime.strptime(request.form.get('expiry_date'), '%Y-%m-%d').date() if request.form.get('expiry_date') else None,
+            active_ingredient=(request.form.get('active_ingredient') or '').strip() or None,
+            common_usage=(request.form.get('common_usage') or '').strip() or None,
+            safety_notes=(request.form.get('safety_notes') or '').strip() or None,
             notes=request.form.get('notes')
         )
         
@@ -88,10 +91,10 @@ def edit_item(item_id):
         item.unit = request.form.get('unit')
         item.purchase_price = float(request.form.get('purchase_price'))
         item.supplier = request.form.get('supplier')
-        
-        if request.form.get('expiry_date'):
-            item.expiry_date = datetime.strptime(request.form.get('expiry_date'), '%Y-%m-%d').date()
-        
+        item.expiry_date = datetime.strptime(request.form.get('expiry_date'), '%Y-%m-%d').date() if request.form.get('expiry_date') else None
+        item.active_ingredient = (request.form.get('active_ingredient') or '').strip() or None
+        item.common_usage = (request.form.get('common_usage') or '').strip() or None
+        item.safety_notes = (request.form.get('safety_notes') or '').strip() or None
         item.notes = request.form.get('notes')
         
         db.session.commit()

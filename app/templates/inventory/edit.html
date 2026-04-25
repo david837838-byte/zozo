@@ -44,24 +44,43 @@
                     <input type="number" class="form-control" id="purchase_price" name="purchase_price" step="0.01" value="{{ item.purchase_price }}" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="supplier" class="form-label">الموردة</label>
+                    <label for="supplier" class="form-label">المورد</label>
                     <input type="text" class="form-control" id="supplier" name="supplier" value="{{ item.supplier or '' }}">
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label for="notes" class="form-label">ملاحظات</label>
-                <textarea class="form-control" id="notes" name="notes" rows="3">{{ item.notes or '' }}</textarea>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="expiry_date" class="form-label">تاريخ الانتهاء</label>
+                    <input type="date" class="form-control" id="expiry_date" name="expiry_date" value="{{ item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="active_ingredient" class="form-label">المادة الفعالة</label>
+                    <input type="text" class="form-control" id="active_ingredient" name="active_ingredient" value="{{ item.active_ingredient or '' }}">
+                </div>
             </div>
 
             <div class="mb-3">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-check-circle"></i> حفظ التعديلات
-                </button>
-                <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
-                    <i class="bi bi-x-circle"></i> إلغاء
-                </a>
+                <label for="common_usage" class="form-label">الاستخدام الزراعي المعتاد</label>
+                <textarea class="form-control" id="common_usage" name="common_usage" rows="2">{{ item.common_usage or '' }}</textarea>
             </div>
+
+            <div class="mb-3">
+                <label for="safety_notes" class="form-label">ملاحظات الأمان</label>
+                <textarea class="form-control" id="safety_notes" name="safety_notes" rows="2">{{ item.safety_notes or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات إضافية</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3">{{ item.notes or '' }}</textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> حفظ التعديلات
+            </button>
+            <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> إلغاء
+            </a>
         </form>
     </div>
 </div>

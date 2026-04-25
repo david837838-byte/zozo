@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -155,6 +155,10 @@
                                 <i class="bi bi-person-circle"></i> {{ current_user.full_name }}
                             </a>
                             <ul class="dropdown-menu">
+                                {% if current_user.account %}
+                                    <li><span class="dropdown-item-text text-muted"><i class="bi bi-building"></i> {{ current_user.account.name }}</span></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% endif %}
                                 <li><a class="dropdown-item" href="{{ url_for('settings.profile') }}"><i class="fas fa-user"></i> ملفي الشخصي</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}"><i class="fas fa-key"></i> تغيير كلمة المرور</a></li>
                                 <li><hr class="dropdown-divider"></li>
@@ -231,10 +235,29 @@
                         <i class="bi bi-file-earmark-pdf"></i> التقارير
                     </a>
                     {% endif %}
+
+                    {% if current_user.can_manage_production or current_user.can_manage_inventory or current_user.can_manage_reports or current_user.is_admin %}
+                    <a href="{{ url_for('ai_assistant.index') }}" class="{% if 'ai_assistant' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-robot"></i> المساعد الذكي
+                    </a>
+                    {% endif %}
                     
                     {% if current_user.is_admin %}
                     <a href="{{ url_for('settings.index') }}" class="{% if 'settings' in request.endpoint %}active{% endif %}">
                         <i class="bi bi-gear"></i> الإعدادات
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.is_super_admin %}
+                    <hr>
+                    <h6 class="mb-2 text-danger">
+                        <i class="bi bi-shield-check"></i> Super Admin
+                    </h6>
+                    <a href="{{ url_for('admin_accounts.list_accounts') }}" class="{% if 'admin_accounts' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-building"></i> إدارة الحسابات
+                    </a>
+                    <a href="{{ url_for('admin_accounts.super_admin_permissions') }}" class="{% if 'super_admin_permissions' in request.endpoint %}active{% endif %}">
+                        <i class="bi bi-lock"></i> صلاحياتي
                     </a>
                     {% endif %}
                 </div>

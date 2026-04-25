@@ -15,6 +15,7 @@ class Motor(db.Model):
     __tablename__ = 'motors'
     
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     name = db.Column(db.String(100), nullable=False, unique=True, index=True)  # اسم المحرك
     motor_type = db.Column(db.String(50), nullable=False)  # نوع المحرك (ديزل، بنزين، كهربائي)
     model = db.Column(db.String(100))  # موديل المحرك
@@ -61,6 +62,7 @@ class OperatorQuota(db.Model):
     __tablename__ = 'operator_quotas'
     
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     operator_name = db.Column(db.String(100), nullable=False, index=True)  # اسم المشغل
     year = db.Column(db.Integer, nullable=False, index=True)  # السنة
     allocated_hours = db.Column(db.Float, nullable=False, default=0)  # عدد الساعات المخصصة
@@ -113,6 +115,7 @@ class MotorUsage(db.Model):
     __tablename__ = 'motor_usages'
     
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     
     # العلاقات الخارجية
     motor_id = db.Column(db.Integer, db.ForeignKey('motors.id', ondelete='CASCADE'), nullable=False, index=True)
@@ -181,6 +184,7 @@ class MotorCost(db.Model):
     __tablename__ = 'motor_costs'
     
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     motor_id = db.Column(db.Integer, db.ForeignKey('motors.id', ondelete='CASCADE'), nullable=False, index=True)
     cost_type = db.Column(db.String(50), nullable=False)  # وقود أو صيانة
     quantity = db.Column(db.Float, nullable=False)  # كمية (لتر للوقود، وحدة للصيانة)

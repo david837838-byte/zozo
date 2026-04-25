@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الصلاحيات{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-lock"></i> تعديل صلاحيات المستخدم
+                    </h4>
+                </div>
+                <div class="card-body p-5">
+                    <div class="alert alert-info mb-4">
+                        <strong>المستخدم:</strong> @{{ user.username }} ({{ user.full_name }})<br>
+                        <strong>الحساب:</strong> {{ account.name }}<br>
+                        <strong>البريد:</strong> {{ user.email }}
+                    </div>
+
+                    <form method="POST" action="{{ url_for('admin_accounts.edit_user_permissions', account_id=account.id, user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                        <!-- الصلاحيات الأساسية -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-user-cog"></i> الصلاحيات الأساسية</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="is_active" 
+                                                   name="is_active" {% if user.is_active %}checked{% endif %}>
+                                            <label class="form-check-label" for="is_active">
+                                                <strong>تفعيل المستخدم</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="is_admin" 
+                                                   name="is_admin" {% if user.is_admin %}checked{% endif %}>
+                                            <label class="form-check-label" for="is_admin">
+                                                <strong>مسؤول الحساب</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- صلاحيات الأقسام الرئيسية -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-cubes"></i> صلاحيات الأقسام</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_workers" 
+                                                   name="can_manage_workers" {% if user.can_manage_workers %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_workers">
+                                                <strong>إدارة العمال</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_inventory" 
+                                                   name="can_manage_inventory" {% if user.can_manage_inventory %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_inventory">
+                                                <strong>إدارة المخزون</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_production" 
+                                                   name="can_manage_production" {% if user.can_manage_production %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_production">
+                                                <strong>إدارة الإنتاج</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_sales" 
+                                                   name="can_manage_sales" {% if user.can_manage_sales %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_sales">
+                                                <strong>إدارة المبيعات</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_accounting" 
+                                                   name="can_manage_accounting" {% if user.can_manage_accounting %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_accounting">
+                                                <strong>إدارة المحاسبة</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_reports" 
+                                                   name="can_manage_reports" {% if user.can_manage_reports %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_reports">
+                                                <strong>التقارير</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- صلاحيات الإنتاج المتقدمة -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-leaf"></i> صلاحيات الإنتاج المتقدمة</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_crop_health" 
+                                                   name="can_manage_crop_health" {% if user.can_manage_crop_health %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_crop_health">
+                                                <strong>إدارة صحة المحاصيل</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_production_batches" 
+                                                   name="can_manage_production_batches" {% if user.can_manage_production_batches %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_production_batches">
+                                                <strong>إدارة دفعات الإنتاج</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_production_costs" 
+                                                   name="can_manage_production_costs" {% if user.can_manage_production_costs %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_production_costs">
+                                                <strong>إدارة تكاليف الإنتاج</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_production_stages" 
+                                                   name="can_manage_production_stages" {% if user.can_manage_production_stages %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_manage_production_stages">
+                                                <strong>إدارة مراحل الإنتاج</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_view_analytics" 
+                                                   name="can_view_analytics" {% if user.can_view_analytics %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_view_analytics">
+                                                <strong>عرض التحليلات</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- صلاحيات العمليات -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-tools"></i> صلاحيات العمليات</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_delete" 
+                                                   name="can_delete" {% if user.can_delete %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_delete">
+                                                <strong>حذف البيانات</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_edit" 
+                                                   name="can_edit" {% if user.can_edit %}checked{% endif %}>
+                                            <label class="form-check-label" for="can_edit">
+                                                <strong>تعديل البيانات</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> حفظ الصلاحيات
+                            </button>
+                            <a href="{{ url_for('admin_accounts.account_users', account_id=account.id) }}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

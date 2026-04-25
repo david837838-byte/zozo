@@ -10,6 +10,7 @@ class AuditLog(db.Model):
     __tablename__ = "audit_logs"
 
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=True, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True, index=True)
     username = db.Column(db.String(80), nullable=False, default="system", index=True)
     action = db.Column(db.String(20), nullable=False, index=True)  # create/update/delete
@@ -22,6 +23,7 @@ class AuditLog(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     user = db.relationship("User", lazy="joined")
+    account = db.relationship("Account", lazy="joined")
 
     @property
     def changes_dict(self):

@@ -5,13 +5,101 @@ from datetime import datetime, timedelta
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from app import db
 from app.models.user import User
 from app.models.box import BoxType, BoxUsage
 from app.models.app_setting import AppSetting
 from app.models.audit_log import AuditLog
+from app.security import get_submitted_csrf_token, validate_csrf_token
 
 bp = Blueprint('settings', __name__, url_prefix='/settings')
+
+
+def _scoped_setting_key(base_key):
+    """Return account-scoped key when possible."""
+    account_id = getattr(current_user, 'account_id', None)
+    if account_id:
+        return f'account:{account_id}:{base_key}'
+    return base_key
+
+
+def _setting_get(base_key, default=None):
+    return AppSetting.get_value(_scoped_setting_key(base_key), default)
+
+
+def _setting_set(base_key, value):
+    return AppSetting.set_value(_scoped_setting_key(base_key), value)
+
+
+def _setting_get_raw(base_key):
+    return AppSetting.get_value(_scoped_setting_key(base_key), None)
+
+
+def _masked_secret(value):
+    if not value:
+        return 'غير مضبوط'
+    text = str(value).strip()
+    if len(text) <= 6:
+        return '*' * len(text)
+    return f"{text[:3]}{'*' * (len(text) - 6)}{text[-3:]}"
+
+
+def _effective_ai_config():
+    env_gemini = (os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or '').strip()
+    env_openai = (os.environ.get('OPENAI_API_KEY') or '').strip()
+
+    stored_gemini = (_setting_get_raw('gemini_api_key') or '').strip()
+    stored_openai = (_setting_get_raw('openai_api_key') or '').strip()
+
+    effective_gemini = stored_gemini or env_gemini
+    effective_openai = stored_openai or env_openai
+
+    provider = (_setting_get('ai_provider', 'auto') or 'auto').strip().lower()
+    if provider not in {'auto', 'gemini', 'openai', 'local'}:
+        provider = 'auto'
+
+    gemini_model = (_setting_get('gemini_model', os.environ.get('GEMINI_MODEL') or 'gemini-2.5-flash') or 'gemini-2.5-flash').strip()
+    openai_model = (_setting_get('openai_model', os.environ.get('OPENAI_MODEL') or 'gpt-5.4-mini') or 'gpt-5.4-mini').strip()
+
+    return {
+        'provider': provider,
+        'gemini_model': gemini_model,
+        'openai_model': openai_model,
+        'gemini_key_masked': _masked_secret(effective_gemini),
+        'openai_key_masked': _masked_secret(effective_openai),
+        'gemini_source': 'database' if stored_gemini else ('environment' if env_gemini else 'none'),
+        'openai_source': 'database' if stored_openai else ('environment' if env_openai else 'none'),
+        'gemini_is_set': bool(effective_gemini),
+        'openai_is_set': bool(effective_openai),
+    }
+
+
+def _can_manage_account_users():
+    return current_user.is_super_admin or current_user.is_admin
+
+
+def _grant_full_permissions(user):
+    user.is_admin = True
+    user.is_active = True
+    user.can_manage_workers = True
+    user.can_manage_inventory = True
+    user.can_manage_production = True
+    user.can_manage_sales = True
+    user.can_manage_accounting = True
+    user.can_manage_reports = True
+    user.can_delete = True
+    user.can_edit = True
+    user.can_manage_crop_health = True
+    user.can_manage_production_batches = True
+    user.can_manage_production_costs = True
+    user.can_manage_production_stages = True
+    user.can_view_analytics = True
+    user.can_use_ai_assistant = True
+    user.can_view_ai_history = True
+    user.can_use_ai_upload = True
+    user.can_use_ai_voice = True
+    user.can_view_ai_reports = True
 
 
 def _backup_dir():
@@ -86,16 +174,16 @@ def _run_auto_backup_if_due(backup_frequency):
         return
 
     now = datetime.now()
-    last_auto_backup = _parse_iso_datetime(AppSetting.get_value('last_auto_backup_at'))
+    last_auto_backup = _parse_iso_datetime(_setting_get('last_auto_backup_at'))
     required_interval = timedelta(days=1 if backup_frequency == 'daily' else 7)
 
     if last_auto_backup and now - last_auto_backup < required_interval:
         return
 
     backup_path = _create_database_backup(prefix='auto_backup')
-    AppSetting.set_value('last_auto_backup_at', now.isoformat())
-    AppSetting.set_value('last_backup_file', os.path.basename(backup_path))
-    AppSetting.set_value('last_backup_at', now.isoformat())
+    _setting_set('last_auto_backup_at', now.isoformat())
+    _setting_set('last_backup_file', os.path.basename(backup_path))
+    _setting_set('last_backup_at', now.isoformat())
 
 
 @bp.route('/', methods=['GET', 'POST'])
@@ -110,34 +198,44 @@ def index():
         action = (request.form.get('action') or 'update_site_name').strip()
 
         if action == 'update_backup_settings':
+            if not current_user.is_super_admin:
+                flash('إدارة النسخ الاحتياطي متاحة فقط للمشرف العام', 'danger')
+                return redirect(url_for('settings.index'))
+
             backup_frequency = (request.form.get('backup_frequency') or 'daily').strip().lower()
             if backup_frequency not in {'none', 'daily', 'weekly'}:
                 flash('قيمة تكرار النسخ الاحتياطي غير صحيحة', 'danger')
             else:
-                AppSetting.set_value('backup_frequency', backup_frequency)
+                _setting_set('backup_frequency', backup_frequency)
                 flash('تم تحديث إعدادات النسخ الاحتياطي بنجاح', 'success')
         else:
             site_name = (request.form.get('site_name') or '').strip()
             if not site_name:
                 flash('اسم الموقع مطلوب', 'danger')
             else:
-                AppSetting.set_value('site_name', site_name)
+                _setting_set('site_name', site_name)
                 flash('تم تحديث اسم الموقع بنجاح', 'success')
 
         return redirect(url_for('settings.index'))
 
-    site_name = AppSetting.get_value('site_name', 'نظام المزرعة')
-    backup_frequency = AppSetting.get_value('backup_frequency', 'daily')
+    site_name = _setting_get('site_name', AppSetting.get_value('site_name', 'نظام المزرعة'))
+    backup_frequency = _setting_get('backup_frequency', 'daily')
 
-    try:
-        _run_auto_backup_if_due(backup_frequency)
-    except Exception:
-        flash('تعذر تشغيل النسخ الاحتياطي التلقائي حالياً', 'warning')
+    backups = []
+    last_backup_at = None
+    last_restore_at = None
+    last_backup_file = None
 
-    backups = _list_backups(limit=12)
-    last_backup_at = _parse_iso_datetime(AppSetting.get_value('last_backup_at'))
-    last_restore_at = _parse_iso_datetime(AppSetting.get_value('last_restore_at'))
-    last_backup_file = AppSetting.get_value('last_backup_file')
+    if current_user.is_super_admin:
+        try:
+            _run_auto_backup_if_due(backup_frequency)
+        except Exception:
+            flash('تعذر تشغيل النسخ الاحتياطي التلقائي حالياً', 'warning')
+
+        backups = _list_backups(limit=12)
+        last_backup_at = _parse_iso_datetime(_setting_get('last_backup_at'))
+        last_restore_at = _parse_iso_datetime(_setting_get('last_restore_at'))
+        last_backup_file = _setting_get('last_backup_file')
 
     return render_template(
         'settings/index.html',
@@ -150,19 +248,61 @@ def index():
     )
 
 
+@bp.route('/ai', methods=['GET', 'POST'])
+@login_required
+def ai_settings():
+    """AI provider and API keys settings."""
+    if not current_user.is_admin:
+        flash('ليس لديك صلاحية الوصول إلى إعدادات الذكاء الاصطناعي', 'danger')
+        return redirect(url_for('home.index'))
+
+    if request.method == 'POST':
+        provider = (request.form.get('ai_provider') or 'auto').strip().lower()
+        if provider not in {'auto', 'gemini', 'openai', 'local'}:
+            provider = 'auto'
+
+        gemini_model = (request.form.get('gemini_model') or '').strip() or 'gemini-2.5-flash'
+        openai_model = (request.form.get('openai_model') or '').strip() or 'gpt-5.4-mini'
+
+        _setting_set('ai_provider', provider)
+        _setting_set('gemini_model', gemini_model)
+        _setting_set('openai_model', openai_model)
+
+        gemini_key_input = (request.form.get('gemini_api_key') or '').strip()
+        openai_key_input = (request.form.get('openai_api_key') or '').strip()
+        clear_gemini = request.form.get('clear_gemini_api_key') == 'on'
+        clear_openai = request.form.get('clear_openai_api_key') == 'on'
+
+        if clear_gemini:
+            _setting_set('gemini_api_key', '')
+        elif gemini_key_input:
+            _setting_set('gemini_api_key', gemini_key_input)
+
+        if clear_openai:
+            _setting_set('openai_api_key', '')
+        elif openai_key_input:
+            _setting_set('openai_api_key', openai_key_input)
+
+        flash('تم حفظ إعدادات الذكاء الاصطناعي بنجاح', 'success')
+        return redirect(url_for('settings.ai_settings'))
+
+    config = _effective_ai_config()
+    return render_template('settings/ai_settings.html', ai_config=config)
+
+
 @bp.route('/backup/create', methods=['POST'])
 @login_required
 def create_backup():
     """Create backup and send it as a downloadable file."""
-    if not current_user.is_admin:
+    if not current_user.is_super_admin:
         flash('ليس لديك صلاحية تنفيذ النسخ الاحتياطي', 'danger')
         return redirect(url_for('home.index'))
 
     try:
         backup_path = _create_database_backup(prefix='manual_backup')
         now = datetime.now()
-        AppSetting.set_value('last_backup_at', now.isoformat())
-        AppSetting.set_value('last_backup_file', os.path.basename(backup_path))
+        _setting_set('last_backup_at', now.isoformat())
+        _setting_set('last_backup_file', os.path.basename(backup_path))
 
         return send_file(
             backup_path,
@@ -179,7 +319,7 @@ def create_backup():
 @login_required
 def restore_backup():
     """Restore database from uploaded backup file."""
-    if not current_user.is_admin:
+    if not current_user.is_super_admin:
         flash('ليس لديك صلاحية استرجاع النسخة الاحتياطية', 'danger')
         return redirect(url_for('home.index'))
 
@@ -211,7 +351,7 @@ def restore_backup():
         db.engine.dispose()
         shutil.copy2(upload_temp_path, db_path)
 
-        AppSetting.set_value('last_restore_at', datetime.now().isoformat())
+        _setting_set('last_restore_at', datetime.now().isoformat())
         flash('تم استرجاع النسخة الاحتياطية بنجاح', 'success')
     except Exception:
         flash('حدث خطأ أثناء استرجاع النسخة الاحتياطية', 'danger')
@@ -297,45 +437,60 @@ def audit_logs():
         entity_types=entity_types,
     )
 
-@bp.route('/users')
+@bp.route('/users/add', methods=['GET', 'POST'])
 @login_required
-def users():
-    """إدارة المستخدمين"""
-    if not current_user.is_admin:
-        flash('ليس لديك صلاحية الوصول إلى هذا القسم', 'danger')
+def add_user():
+    """Create a new user inside the current account."""
+    if not _can_manage_account_users():
+        flash('إنشاء المستخدمين داخل الحساب متاح فقط لمدير الحساب أو المشرف العام', 'danger')
         return redirect(url_for('home.index'))
-    
-    users = User.query.all()
-    return render_template('settings/users.html', users=users)
 
-@bp.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_user(user_id):
-    """تعديل بيانات المستخدم والصلاحيات"""
-    if not current_user.is_admin:
-        flash('ليس لديك صلاحية القيام بهذا الإجراء', 'danger')
+    if not current_user.account_id:
+        flash('لا يمكن إنشاء مستخدم بدون حساب مرتبط', 'danger')
         return redirect(url_for('settings.users'))
-    
-    user = User.query.get_or_404(user_id)
-    
+
     if request.method == 'POST':
-        user.full_name = request.form.get('full_name')
-        user.email = request.form.get('email')
-        user.is_active = request.form.get('is_active') == 'on'
-        user.is_admin = request.form.get('is_admin') == 'on'
-        
-        # إذا كان إدميناً، سيكون لديه كامل الصلاحيات
-        if user.is_admin:
-            user.can_manage_workers = True
-            user.can_manage_inventory = True
-            user.can_manage_production = True
-            user.can_manage_sales = True
-            user.can_manage_accounting = True
-            user.can_manage_reports = True
-            user.can_delete = True
-            user.can_edit = True
+        submitted_token = get_submitted_csrf_token()
+        if not validate_csrf_token(submitted_token):
+            flash('Invalid CSRF token. Please retry.', 'danger')
+            return redirect(url_for('settings.add_user'))
+
+        username = (request.form.get('username') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        password = request.form.get('password') or ''
+        full_name = (request.form.get('full_name') or '').strip()
+        is_admin = request.form.get('is_admin') == 'on'
+
+        if not username or not email or not password or not full_name:
+            flash('يرجى تعبئة كل الحقول المطلوبة', 'danger')
+            return redirect(url_for('settings.add_user'))
+
+        if len(password) < 6:
+            flash('كلمة المرور يجب أن تكون على الأقل 6 أحرف', 'danger')
+            return redirect(url_for('settings.add_user'))
+
+        if User.query.execution_options(tenant_skip=True).filter_by(username=username).first():
+            flash('اسم المستخدم موجود بالفعل', 'danger')
+            return redirect(url_for('settings.add_user'))
+
+        if User.query.execution_options(tenant_skip=True).filter_by(email=email).first():
+            flash('البريد الإلكتروني مستخدم بالفعل', 'danger')
+            return redirect(url_for('settings.add_user'))
+
+        user = User(
+            username=username,
+            email=email,
+            full_name=full_name,
+            account_id=current_user.account_id,
+            is_active=True,
+            is_admin=False,
+            is_super_admin=False,
+        )
+        user.set_password(password)
+
+        if is_admin:
+            _grant_full_permissions(user)
         else:
-            # إذا لم يكن إدميناً، اقرأ الصلاحيات من النموذج
             user.can_manage_workers = request.form.get('can_manage_workers') == 'on'
             user.can_manage_inventory = request.form.get('can_manage_inventory') == 'on'
             user.can_manage_production = request.form.get('can_manage_production') == 'on'
@@ -344,36 +499,121 @@ def edit_user(user_id):
             user.can_manage_reports = request.form.get('can_manage_reports') == 'on'
             user.can_delete = request.form.get('can_delete') == 'on'
             user.can_edit = request.form.get('can_edit') == 'on'
-            
+            user.can_manage_crop_health = request.form.get('can_manage_crop_health') == 'on'
+            user.can_manage_production_batches = request.form.get('can_manage_production_batches') == 'on'
+            user.can_manage_production_costs = request.form.get('can_manage_production_costs') == 'on'
+            user.can_manage_production_stages = request.form.get('can_manage_production_stages') == 'on'
+            user.can_view_analytics = request.form.get('can_view_analytics') == 'on'
+            user.can_use_ai_assistant = request.form.get('can_use_ai_assistant') == 'on'
+            user.can_view_ai_history = request.form.get('can_view_ai_history') == 'on'
+            user.can_use_ai_upload = request.form.get('can_use_ai_upload') == 'on'
+            user.can_use_ai_voice = request.form.get('can_use_ai_voice') == 'on'
+            user.can_view_ai_reports = request.form.get('can_view_ai_reports') == 'on'
+
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash('تعذر إنشاء المستخدم، تحقق من البيانات المدخلة', 'danger')
+            return redirect(url_for('settings.add_user'))
+
+        flash(f'تم إنشاء المستخدم "{user.full_name}" بنجاح', 'success')
+        return redirect(url_for('settings.users'))
+
+    return render_template('settings/add_user.html')
+
+
+@bp.route('/users')
+@login_required
+def users():
+    """إدارة المستخدمين"""
+    if not _can_manage_account_users():
+        flash('ليس لديك صلاحية الوصول إلى هذا القسم', 'danger')
+        return redirect(url_for('home.index'))
+
+    users = (
+        User.query.filter(User.account_id == current_user.account_id)
+        .order_by(User.id.asc())
+        .all()
+    )
+    return render_template('settings/users.html', users=users)
+
+@bp.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    """تعديل بيانات المستخدم والصلاحيات"""
+    if not _can_manage_account_users():
+        flash('ليس لديك صلاحية القيام بهذا الإجراء', 'danger')
+        return redirect(url_for('home.index'))
+
+    user = User.query.filter(
+        User.id == user_id,
+        User.account_id == current_user.account_id,
+    ).first_or_404()
+
+    if request.method == 'POST':
+        submitted_token = get_submitted_csrf_token()
+        if not validate_csrf_token(submitted_token):
+            flash('Invalid CSRF token. Please retry.', 'danger')
+            return redirect(url_for('settings.edit_user', user_id=user_id))
+
+        user.full_name = request.form.get('full_name')
+        user.email = request.form.get('email')
+        user.is_active = request.form.get('is_active') == 'on'
+        user.is_admin = request.form.get('is_admin') == 'on'
+
+        # إذا كان إدارياً، سيحصل تلقائياً على كامل الصلاحيات
+        if user.is_admin:
+            _grant_full_permissions(user)
+        else:
+            # إذا لم يكن إدارياً، اقرأ الصلاحيات من النموذج
+            user.can_manage_workers = request.form.get('can_manage_workers') == 'on'
+            user.can_manage_inventory = request.form.get('can_manage_inventory') == 'on'
+            user.can_manage_production = request.form.get('can_manage_production') == 'on'
+            user.can_manage_sales = request.form.get('can_manage_sales') == 'on'
+            user.can_manage_accounting = request.form.get('can_manage_accounting') == 'on'
+            user.can_manage_reports = request.form.get('can_manage_reports') == 'on'
+            user.can_delete = request.form.get('can_delete') == 'on'
+            user.can_edit = request.form.get('can_edit') == 'on'
+
             # الصلاحيات المتقدمة للإنتاج
             user.can_manage_crop_health = request.form.get('can_manage_crop_health') == 'on'
             user.can_manage_production_batches = request.form.get('can_manage_production_batches') == 'on'
             user.can_manage_production_costs = request.form.get('can_manage_production_costs') == 'on'
             user.can_manage_production_stages = request.form.get('can_manage_production_stages') == 'on'
             user.can_view_analytics = request.form.get('can_view_analytics') == 'on'
-        
+            user.can_use_ai_assistant = request.form.get('can_use_ai_assistant') == 'on'
+            user.can_view_ai_history = request.form.get('can_view_ai_history') == 'on'
+            user.can_use_ai_upload = request.form.get('can_use_ai_upload') == 'on'
+            user.can_use_ai_voice = request.form.get('can_use_ai_voice') == 'on'
+            user.can_view_ai_reports = request.form.get('can_view_ai_reports') == 'on'
+
         db.session.commit()
         flash(f'تم تحديث بيانات {user.full_name}', 'success')
         return redirect(url_for('settings.users'))
-    
+
     return render_template('settings/edit_user.html', user=user)
 
 @bp.route('/users/<int:user_id>/delete', methods=['POST'])
 @login_required
 def delete_user(user_id):
     """حذف مستخدم"""
-    if not current_user.is_admin:
+    if not _can_manage_account_users():
         flash('ليس لديك صلاحية القيام بهذا الإجراء', 'danger')
-        return redirect(url_for('settings.users'))
-    
+        return redirect(url_for('home.index'))
+
     if user_id == current_user.id:
         flash('لا يمكنك حذف حسابك الخاص', 'danger')
         return redirect(url_for('settings.users'))
-    
-    user = User.query.get_or_404(user_id)
+
+    user = User.query.filter(
+        User.id == user_id,
+        User.account_id == current_user.account_id,
+    ).first_or_404()
     db.session.delete(user)
     db.session.commit()
-    
+
     flash(f'تم حذف المستخدم {user.full_name}', 'success')
     return redirect(url_for('settings.users'))
 

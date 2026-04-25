@@ -7,15 +7,15 @@
     <div class="col-9">
         <h1>المخزون</h1>
     </div>
-    <div class="col-3">
-        <a href="{{ url_for('inventory.add_item') }}" class="btn btn-primary float-end">
+    <div class="col-3 text-end">
+        <a href="{{ url_for('inventory.add_item') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> إضافة عنصر
         </a>
     </div>
 </div>
 
 <div class="row mb-3">
-    <div class="col-12">
+    <div class="col-12 d-flex gap-2 flex-wrap">
         <a href="{{ url_for('inventory.boxes') }}" class="btn btn-info">
             <i class="bi bi-box-seam"></i> الشراحات والكراتين
         </a>
@@ -30,15 +30,15 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
                     <th>الاسم</th>
                     <th>الفئة</th>
+                    <th>المادة الفعالة</th>
+                    <th>الاستخدام</th>
                     <th>الكمية</th>
-                    <th>الوحدة</th>
                     <th>السعر</th>
-                    <th>الموردة</th>
                     <th>الحالة</th>
                     <th>الإجراءات</th>
                 </tr>
@@ -46,7 +46,12 @@
             <tbody>
                 {% for item in items %}
                 <tr>
-                    <td>{{ item.name }}</td>
+                    <td>
+                        <strong>{{ item.name }}</strong>
+                        {% if item.safety_notes %}
+                            <div class="small text-muted mt-1">أمان: {{ item.safety_notes[:70] }}{% if item.safety_notes|length > 70 %}...{% endif %}</div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if item.category == 'أدوية' %}
                             <span class="badge bg-primary">أدوية</span>
@@ -58,15 +63,15 @@
                             <span class="badge bg-secondary">{{ item.category }}</span>
                         {% endif %}
                     </td>
-                    <td>{{ item.quantity }}</td>
-                    <td>{{ item.unit }}</td>
+                    <td>{{ item.active_ingredient or '-' }}</td>
+                    <td>{{ item.common_usage or '-' }}</td>
+                    <td>{{ item.quantity }} {{ item.unit }}</td>
                     <td>{{ item.purchase_price }}</td>
-                    <td>{{ item.supplier or '-' }}</td>
                     <td>
                         {% if item.quantity > 0 %}
                             <span class="badge bg-success">متاح</span>
                         {% else %}
-                            <span class="badge bg-danger">نفذ</span>
+                            <span class="badge bg-danger">نافد</span>
                         {% endif %}
                     </td>
                     <td>
@@ -98,7 +103,6 @@
     </div>
 </div>
 
-<!-- Modals for Delete Confirmation -->
 {% for item in items %}
 <div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ item.id }}" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -110,22 +114,14 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">
-                    هل أنت متأكد من حذف <strong style="color: #dc3545;">{{ item.name }}</strong>؟
-                </p>
-                <small class="text-muted d-block mt-2">
-                    <i class="bi bi-info-circle"></i>
-                    سيتم حذف جميع السجلات المرتبطة بهذا الصنف أيضاً.
-                </small>
+                هل أنت متأكد من حذف <strong>{{ item.name }}</strong>؟
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> إلغاء
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
                 <form method="POST" action="{{ url_for('inventory.delete_item', item_id=item.id) }}" class="d-inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash"></i> حذف نهائياً
+                        <i class="bi bi-trash"></i> حذف نهائي
                     </button>
                 </form>
             </div>

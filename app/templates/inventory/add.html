@@ -20,7 +20,7 @@
                 <div class="col-md-6 mb-3">
                     <label for="category" class="form-label">الفئة</label>
                     <select class="form-select" id="category" name="category" required>
-                        <option selected>-- اختر --</option>
+                        <option value="" selected disabled>-- اختر --</option>
                         <option value="أدوية">أدوية</option>
                         <option value="أسمدة">أسمدة</option>
                         <option value="مشتقات نفطية">مشتقات نفطية</option>
@@ -35,7 +35,7 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="unit" class="form-label">الوحدة</label>
-                    <input type="text" class="form-control" id="unit" name="unit" placeholder="كيس، لتر، إلخ" required>
+                    <input type="text" class="form-control" id="unit" name="unit" placeholder="لتر / كغ / عبوة" required>
                 </div>
             </div>
 
@@ -45,7 +45,7 @@
                     <input type="number" class="form-control" id="purchase_price" name="purchase_price" step="0.01" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="supplier" class="form-label">الموردة</label>
+                    <label for="supplier" class="form-label">المورد</label>
                     <input type="text" class="form-control" id="supplier" name="supplier">
                 </div>
             </div>
@@ -55,21 +55,33 @@
                     <label for="expiry_date" class="form-label">تاريخ الانتهاء</label>
                     <input type="date" class="form-control" id="expiry_date" name="expiry_date">
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="active_ingredient" class="form-label">المادة الفعالة</label>
+                    <input type="text" class="form-control" id="active_ingredient" name="active_ingredient" placeholder="مثال: Azoxystrobin">
+                </div>
             </div>
 
             <div class="mb-3">
-                <label for="notes" class="form-label">ملاحظات</label>
+                <label for="common_usage" class="form-label">الاستخدام الزراعي المعتاد</label>
+                <textarea class="form-control" id="common_usage" name="common_usage" rows="2" placeholder="مثال: مكافحة البياض الدقيقي واللفحات"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="safety_notes" class="form-label">ملاحظات الأمان</label>
+                <textarea class="form-control" id="safety_notes" name="safety_notes" rows="2" placeholder="مثال: الالتزام بفترة الأمان حسب الملصق"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">ملاحظات إضافية</label>
                 <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
             </div>
 
-            <div class="mb-3">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-check-circle"></i> إضافة
-                </button>
-                <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
-                    <i class="bi bi-x-circle"></i> إلغاء
-                </a>
-            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> إضافة
+            </button>
+            <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> إلغاء
+            </a>
         </form>
     </div>
 </div>

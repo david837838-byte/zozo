@@ -1,3 +1,4 @@
+from app.models.account import Account
 from app.models.user import User
 from app.models.worker import Worker, Shift, WorkLog, MotorLog, Attendance, MonthlyAttendance
 from app.models.motor import Motor, MotorUsage, OperatorQuota, MotorCost
@@ -7,8 +8,10 @@ from app.models.box import BoxType, BoxUsage, BoxPurchase
 from app.models.accounting import Transaction, ExpenseCategory
 from app.models.app_setting import AppSetting
 from app.models.audit_log import AuditLog
+from app.models.ai_chat import AIConversation, AIConversationMessage
 
 __all__ = [
+    'Account',
     'User',
     'Worker', 'Shift', 'WorkLog', 'MotorLog', 'Attendance', 'MonthlyAttendance',
     'Motor', 'MotorUsage', 'OperatorQuota', 'MotorCost',
@@ -16,5 +19,6 @@ __all__ = [
     'Crop', 'Production', 'Sales', 'CropConsumption',
     'BoxType', 'BoxUsage', 'BoxPurchase',
     'Transaction', 'ExpenseCategory',
-    'AppSetting', 'AuditLog'
+    'AppSetting', 'AuditLog',
+    'AIConversation', 'AIConversationMessage'
 ]

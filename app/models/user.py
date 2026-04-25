@@ -6,12 +6,14 @@ from datetime import datetime
 class User(UserMixin, db.Model):
     """نموذج المستخدم"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     full_name = db.Column(db.String(120), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_admin = db.Column(db.Boolean, default=False)
+    is_super_admin = db.Column(db.Boolean, default=False)
     
     # Roles and permissions
     can_manage_workers = db.Column(db.Boolean, default=False)
@@ -29,6 +31,15 @@ class User(UserMixin, db.Model):
     can_manage_production_costs = db.Column(db.Boolean, default=False)
     can_manage_production_stages = db.Column(db.Boolean, default=False)
     can_view_analytics = db.Column(db.Boolean, default=False)
+
+    # AI permissions
+    can_use_ai_assistant = db.Column(db.Boolean, default=False)
+    can_view_ai_history = db.Column(db.Boolean, default=False)
+    can_use_ai_upload = db.Column(db.Boolean, default=False)
+    can_use_ai_voice = db.Column(db.Boolean, default=False)
+    can_view_ai_reports = db.Column(db.Boolean, default=False)
+
+    account = db.relationship('Account', backref=db.backref('users', lazy=True))
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

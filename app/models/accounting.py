@@ -49,6 +49,7 @@ def is_worker_reference_type(value):
 class ExpenseCategory(db.Model):
     """نموذج فئات المصروفات"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=True)
     
@@ -63,6 +64,7 @@ class ExpenseCategory(db.Model):
 class Transaction(db.Model):
     """نموذج المعاملات المحاسبية"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     category_id = db.Column(db.Integer, db.ForeignKey('expense_category.id'), nullable=True)
     transaction_type = db.Column(db.String(50), nullable=False)  # دخل أو مصروف
     description = db.Column(db.String(255), nullable=False)
@@ -82,6 +84,7 @@ class Transaction(db.Model):
 class ClosedWorkerAccount(db.Model):
     """نموذج حسابات العمال المسكرة"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     worker_id = db.Column(db.Integer, nullable=False)  # معرف العامل (الأصلي)
     worker_name = db.Column(db.String(120), nullable=False)  # اسم العامل
     phone = db.Column(db.String(20), nullable=True)

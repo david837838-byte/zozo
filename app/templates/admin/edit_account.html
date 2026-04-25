@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الحساب{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit"></i> تعديل الحساب
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('admin_accounts.edit_account', account_id=account.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                        <div class="mb-4">
+                            <label for="account_name" class="form-label">
+                                <strong>اسم الحساب</strong>
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="account_name" 
+                                   name="account_name" value="{{ account.name }}" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="is_active" 
+                                       name="is_active" {% if account.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    <strong>تفعيل الحساب</strong>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-save"></i> حفظ التغييرات
+                            </button>
+                            <a href="{{ url_for('admin_accounts.list_accounts') }}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-arrow-left"></i> رجوع
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if admin_user %}
+            <div class="card mt-4 border-0 shadow-lg">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-shield"></i> مسؤول الحساب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>الاسم:</strong> {{ admin_user.full_name }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>المستخدم:</strong> @{{ admin_user.username }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>البريد:</strong> {{ admin_user.email }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>التاريخ:</strong> {{ admin_user.created_at.strftime('%d/%m/%Y %H:%M') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

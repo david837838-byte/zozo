@@ -4,13 +4,22 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-9">
+    <div class="col-6">
         <h1>إدارة المستخدمين</h1>
     </div>
-    <div class="col-3">
-        <a href="{{ url_for('auth.register') }}" class="btn btn-primary float-end">
+    <div class="col-6 text-end">
+        {% if current_user.is_super_admin %}
+        <a href="{{ url_for('auth.register', mode='account') }}" class="btn btn-primary">
+            <i class="bi bi-building-add"></i> حساب عميل جديد
+        </a>
+        <a href="{{ url_for('auth.register', mode='user') }}" class="btn btn-outline-secondary">
             <i class="bi bi-plus-circle"></i> مستخدم جديد
         </a>
+        {% else %}
+        <a href="{{ url_for('auth.register', mode='user') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> مستخدم جديد
+        </a>
+        {% endif %}
     </div>
 </div>
 
@@ -35,16 +44,16 @@
                     <td>{{ user.email }}</td>
                     <td>
                         {% if user.is_admin %}
-                            <span class="badge bg-danger">إدمين</span>
+                        <span class="badge bg-danger">إدمن</span>
                         {% else %}
-                            <span class="badge bg-secondary">مستخدم عادي</span>
+                        <span class="badge bg-secondary">مستخدم عادي</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if user.is_active %}
-                            <span class="badge bg-success">نشط</span>
+                        <span class="badge bg-success">نشط</span>
                         {% else %}
-                            <span class="badge bg-danger">معطل</span>
+                        <span class="badge bg-danger">معطل</span>
                         {% endif %}
                     </td>
                     <td>
@@ -63,7 +72,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted p-4">لا توجد مستخدمون</td>
+                    <td colspan="6" class="text-center text-muted p-4">لا يوجد مستخدمون</td>
                 </tr>
                 {% endfor %}
             </tbody>

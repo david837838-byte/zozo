@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة مستخدم جديد{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-plus"></i> إضافة مستخدم جديد للحساب: {{ account.name }}
+                    </h4>
+                </div>
+                <div class="card-body p-5">
+                    <form method="POST" action="{{ url_for('admin_accounts.create_account_user', account_id=account.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                        
+                        <!-- بيانات المستخدم -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-user"></i> بيانات المستخدم</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">
+                                        <strong>اسم المستخدم</strong>
+                                    </label>
+                                    <input type="text" class="form-control" id="username" 
+                                           name="username" placeholder="user123" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">
+                                        <strong>البريد الإلكتروني</strong>
+                                    </label>
+                                    <input type="email" class="form-control" id="email" 
+                                           name="email" placeholder="user@example.com" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="full_name" class="form-label">
+                                        <strong>الاسم الكامل</strong>
+                                    </label>
+                                    <input type="text" class="form-control" id="full_name" 
+                                           name="full_name" placeholder="محمد علي" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">
+                                        <strong>كلمة المرور</strong>
+                                    </label>
+                                    <input type="password" class="form-control" id="password" 
+                                           name="password" placeholder="كلمة مرور قوية" required>
+                                    <small class="text-muted">يجب أن تكون على الأقل 6 أحرف</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- صلاحيات الأقسام -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-cubes"></i> الأقسام المتاحة</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_workers" 
+                                                   name="can_manage_workers">
+                                            <label class="form-check-label" for="can_manage_workers">
+                                                <strong>إدارة العمال</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_inventory" 
+                                                   name="can_manage_inventory">
+                                            <label class="form-check-label" for="can_manage_inventory">
+                                                <strong>إدارة المخزون</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_production" 
+                                                   name="can_manage_production">
+                                            <label class="form-check-label" for="can_manage_production">
+                                                <strong>إدارة الإنتاج</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_sales" 
+                                                   name="can_manage_sales">
+                                            <label class="form-check-label" for="can_manage_sales">
+                                                <strong>إدارة المبيعات</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_accounting" 
+                                                   name="can_manage_accounting">
+                                            <label class="form-check-label" for="can_manage_accounting">
+                                                <strong>إدارة المحاسبة</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_manage_reports" 
+                                                   name="can_manage_reports">
+                                            <label class="form-check-label" for="can_manage_reports">
+                                                <strong>التقارير</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_view_analytics" 
+                                                   name="can_view_analytics">
+                                            <label class="form-check-label" for="can_view_analytics">
+                                                <strong>عرض التحليلات</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- صلاحيات العمليات -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-tools"></i> صلاحيات العمليات</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_delete" 
+                                                   name="can_delete">
+                                            <label class="form-check-label" for="can_delete">
+                                                <strong>حذف البيانات</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="can_edit" 
+                                                   name="can_edit">
+                                            <label class="form-check-label" for="can_edit">
+                                                <strong>تعديل البيانات</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save"></i> إضافة المستخدم
+                            </button>
+                            <a href="{{ url_for('admin_accounts.account_users', account_id=account.id) }}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

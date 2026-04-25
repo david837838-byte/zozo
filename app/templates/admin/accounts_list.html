@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الحسابات{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>🏢 إدارة الحسابات</h1>
+            <p class="text-muted">قائمة جميع الحسابات والشركات في النظام</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin_accounts.create_account') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> حساب جديد
+            </a>
+        </div>
+    </div>
+
+    {% if account_data %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>اسم الحساب</th>
+                    <th>مسؤول الحساب</th>
+                    <th>عدد المستخدمين</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الإنشاء</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in account_data %}
+                <tr>
+                    <td>
+                        <strong>{{ item.account.name }}</strong>
+                    </td>
+                    <td>
+                        {% if item.admin_user %}
+                            <span class="badge bg-info">{{ item.admin_user.full_name }}</span>
+                            <br>
+                            <small class="text-muted">@{{ item.admin_user.username }}</small>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ item.user_count }}</span>
+                    </td>
+                    <td>
+                        {% if item.account.is_active %}
+                            <span class="badge bg-success">مفعل</span>
+                        {% else %}
+                            <span class="badge bg-danger">معطل</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small>{{ item.account.created_at.strftime('%d/%m/%Y') }}</small>
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <a href="{{ url_for('admin_accounts.edit_account', account_id=item.account.id) }}" 
+                           class="btn btn-sm btn-warning" title="تعديل">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ url_for('admin_accounts.account_users', account_id=item.account.id) }}" 
+                           class="btn btn-sm btn-info" title="المستخدمون">
+                            <i class="fas fa-users"></i>
+                        </a>
+                        <form action="{{ url_for('admin_accounts.toggle_account_status', account_id=item.account.id) }}" 
+                              method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                            {% if item.account.is_active %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                        onclick="return confirm('هل تريد تعطيل هذا الحساب؟')">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            {% endif %}
+                        </form>
+                        <form action="{{ url_for('admin_accounts.delete_account', account_id=item.account.id) }}" 
+                              method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                            <button type="submit" class="btn btn-sm btn-danger" 
+                                    onclick="return confirm('⚠️ تحذير: سيتم حذف الحساب &quot;{{ item.account.name }}&quot; وجميع بيانات المستخدمين!\n\nهل أنت متأكد؟')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        لا توجد حسابات حالياً. 
+        <a href="{{ url_for('admin_accounts.create_account') }}">أنشئ حساب جديد</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -14,8 +14,8 @@
 
 ### خطوة 1: تسجيل الدخول بحساب إداري
 ```
-Username: admin
-Password: admin123
+Username: <your-admin-username>
+Password: <your-strong-password>
 ```
 
 ### خطوة 2: انتقل إلى الإعدادات

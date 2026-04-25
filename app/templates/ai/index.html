@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}المساعد الزراعي الذكي{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-robot"></i> المساعد الزراعي الذكي</h2>
+            <p class="text-muted mb-0">اسأل عن الأمراض، الأدوية، المقارنات، وخطة الأسبوع.</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span class="badge bg-info text-dark fs-6">الوضع: {{ ai_mode }}</span>
+            {% if can_view_ai_history %}
+            <a href="{{ url_for('ai_assistant.history') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-clock-history"></i> السجلات
+            </a>
+            {% endif %}
+            {% if can_view_ai_reports %}
+            <a href="{{ url_for('ai_assistant.weekly_report') }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-bar-chart"></i> التقرير الأسبوعي
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="alert alert-secondary">
+        <strong>أمثلة سريعة:</strong>
+        قارن بين دواءين | اعمل لي خطة علاج أسبوعية | ما فائدة هذا الدواء؟ | حلل هذه الصورة
+    </div>
+
+    <div class="row mb-4 g-3">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">سجلات الصحة (90 يوم)</h6>
+                    <h3 class="text-primary mb-0">{{ analytics.total_health_cases }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">حالات حرجة</h6>
+                    <h3 class="text-danger mb-0">{{ analytics.critical_cases }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">أدوية منخفضة/نافدة</h6>
+                    <h3 class="text-warning mb-0">{{ analytics.low_stock_count + analytics.out_of_stock_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">قريبة الانتهاء (30 يوم)</h6>
+                    <h3 class="text-dark mb-0">{{ analytics.expiring_soon_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-chat-dots"></i> المحادثة
+                        {% if active_conversation %}
+                        <small class="ms-2 text-light-emphasis">({{ active_conversation.title }})</small>
+                        {% endif %}
+                    </span>
+                    <form method="POST" action="{{ url_for('ai_assistant.clear') }}">
+                        <button type="submit" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-plus-circle"></i> محادثة جديدة
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('ai_assistant.ask') }}" enctype="multipart/form-data" class="mb-4">
+                        <div class="mb-3">
+                            <label for="question" class="form-label">اكتب سؤالك</label>
+                            <textarea
+                                id="question"
+                                name="question"
+                                rows="4"
+                                class="form-control"
+                                placeholder="مثال: قارن بين المبيد الفطري والحشري في حالة البياض"
+                            ></textarea>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            {% if can_use_ai_upload %}
+                            <div class="col-md-8">
+                                <label for="image" class="form-label">صورة اختيارية للتحليل</label>
+                                <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                            </div>
+                            {% endif %}
+                            {% if can_use_ai_voice %}
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="button" id="voiceBtn" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-mic"></i> إدخال صوتي
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> إرسال
+                        </button>
+                    </form>
+
+                    {% if chat_history_top %}
+                        {% for message in chat_history_top %}
+                            <div class="mb-3 p-3 rounded {% if message.role == 'user' %}bg-light border{% else %}border-start border-4 border-success bg-white{% endif %}">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>
+                                        {% if message.role == 'user' %}
+                                            <i class="bi bi-person"></i> أنت
+                                        {% else %}
+                                            <i class="bi bi-robot"></i> المساعد
+                                        {% endif %}
+                                    </strong>
+                                    {% if message.role == 'assistant' and message.backend %}
+                                        <span class="badge bg-secondary">{{ message.backend }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="small" style="white-space: pre-line;">
+                                    {{ message.text | replace('<br />', '\n') | replace('<br/>', '\n') | replace('<br>', '\n') | replace('**', '') }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            ابدأ بسؤالك الأول، وستظهر أحدث إجابة في الأعلى دائمًا.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            {% if can_view_ai_history %}
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clock-history"></i> آخر السجلات</span>
+                    <a href="{{ url_for('ai_assistant.history') }}" class="btn btn-sm btn-outline-primary">عرض الكل</a>
+                </div>
+                <div class="card-body">
+                    {% if conversation_summaries %}
+                        <ul class="list-group list-group-flush">
+                            {% for conv in conversation_summaries[:6] %}
+                                <li class="list-group-item px-0">
+                                    <a href="{{ url_for('ai_assistant.open_history', conversation_id=conv.id) }}" class="text-decoration-none">
+                                        {{ conv.title }}
+                                    </a>
+                                    <div class="small text-muted">
+                                        {{ conv.updated_at.strftime('%Y-%m-%d %H:%M') if conv.updated_at else '-' }} - {{ conv.message_count }} رسالة
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">لا توجد سجلات بعد.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-bell"></i> التنبيهات التلقائية
+                </div>
+                <div class="card-body">
+                    {% if analytics.auto_alerts %}
+                        <ul class="mb-0">
+                            {% for alert in analytics.auto_alerts[:6] %}
+                                <li>
+                                    <strong>{{ alert.title }}</strong><br>
+                                    <small class="text-muted">{{ alert.details }}</small>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">لا توجد تنبيهات حالياً.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-capsule-pill"></i> أدوية منخفضة المخزون
+                </div>
+                <div class="card-body">
+                    {% if analytics.low_stock_medicines %}
+                        <ul class="mb-0">
+                            {% for item in analytics.low_stock_medicines[:6] %}
+                                <li>{{ item.name }} - {{ item.quantity }} {{ item.unit }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">لا يوجد نقص حالياً.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart"></i> أعلى استهلاك دوائي (30 يوم)
+                </div>
+                <div class="card-body">
+                    {% if analytics.top_medicine_usage %}
+                        <ul class="mb-0">
+                            {% for item in analytics.top_medicine_usage %}
+                                <li>{{ item.name }} - {{ item.quantity }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">لا توجد بيانات حديثة.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if can_use_ai_voice %}
+<script>
+(function () {
+    const voiceBtn = document.getElementById('voiceBtn');
+    const textarea = document.getElementById('question');
+    if (!voiceBtn || !textarea) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        voiceBtn.disabled = true;
+        voiceBtn.title = 'المتصفح لا يدعم الإدخال الصوتي';
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ar-SA';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    voiceBtn.addEventListener('click', function () {
+        voiceBtn.disabled = true;
+        voiceBtn.innerHTML = '<i class="bi bi-mic-fill"></i> جاري الاستماع...';
+        recognition.start();
+    });
+
+    recognition.addEventListener('result', function (event) {
+        const text = (event.results[0] && event.results[0][0] && event.results[0][0].transcript) || '';
+        if (text) {
+            textarea.value = textarea.value ? (textarea.value + '\n' + text) : text;
+        }
+    });
+
+    const resetBtn = function () {
+        voiceBtn.disabled = false;
+        voiceBtn.innerHTML = '<i class="bi bi-mic"></i> إدخال صوتي';
+    };
+    recognition.addEventListener('end', resetBtn);
+    recognition.addEventListener('error', resetBtn);
+})();
+</script>
+{% endif %}
+{% endblock %}

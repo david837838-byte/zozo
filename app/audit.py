@@ -113,13 +113,14 @@ def _serialize_changes(instance):
 
 def _resolve_actor():
     if not has_request_context():
-        return None, "system"
+        return None, None, "system"
 
     if getattr(current_user, "is_authenticated", False):
         user_id = getattr(current_user, "id", None)
+        account_id = getattr(current_user, "account_id", None)
         username = getattr(current_user, "username", None) or "user"
-        return user_id, username
-    return None, "anonymous"
+        return user_id, account_id, username
+    return None, None, "anonymous"
 
 
 def _resolve_request_metadata():
@@ -200,7 +201,7 @@ def _write_audit_entries(session):
     if not entries:
         return
 
-    user_id, username = _resolve_actor()
+    user_id, account_id, username = _resolve_actor()
     endpoint, ip_address = _resolve_request_metadata()
 
     logs = []
@@ -214,6 +215,7 @@ def _write_audit_entries(session):
         logs.append(
             AuditLog(
                 user_id=user_id,
+                account_id=account_id,
                 username=username or "system",
                 action=entry["action"],
                 entity_type=instance.__class__.__name__,

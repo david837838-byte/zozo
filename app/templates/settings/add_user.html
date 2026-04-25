@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}تعديل بيانات المستخدم{% endblock %}
+{% block title %}إضافة مستخدم جديد - {{ site_name }}{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
-        <h1><i class="fas fa-user-edit"></i> تعديل {{ user.full_name }}</h1>
+        <h1><i class="fas fa-user-plus"></i> إضافة مستخدم جديد</h1>
+        <p class="text-muted mb-0">أنشئ مستخدم داخل الحساب وحدد صلاحياته.</p>
     </div>
 </div>
 
@@ -18,33 +19,34 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="full_name" class="form-label">الاسم الكامل</label>
-                    <input type="text" class="form-control" id="full_name" name="full_name" value="{{ user.full_name }}" required>
+                    <input type="text" class="form-control" id="full_name" name="full_name" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="email" class="form-label">البريد الإلكتروني</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                    <label for="username" class="form-label">اسم المستخدم</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
                 </div>
             </div>
 
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active"{% if user.is_active %} checked{% endif %}>
-                        <label class="form-check-label" for="is_active">الحساب نشط</label>
-                    </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label">البريد الإلكتروني</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin" onchange="toggleAdminPermissions()"{% if user.is_admin %} checked{% endif %}>
-                        <label class="form-check-label" for="is_admin">دور مدير (صلاحيات كاملة)</label>
-                    </div>
+                <div class="col-md-6 mb-3">
+                    <label for="password" class="form-label">كلمة المرور</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
                 </div>
+            </div>
+
+            <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin" onchange="toggleAdminPermissions()">
+                <label class="form-check-label" for="is_admin">منح المستخدم دور مدير (صلاحيات كاملة)</label>
             </div>
 
             <hr>
 
-            <div id="permissions_section"{% if user.is_admin %} style="opacity:0.6;pointer-events:none;"{% endif %}>
-                <div class="alert alert-info{% if not user.is_admin %} d-none{% endif %}" id="admin_alert">
+            <div id="permissions_section">
+                <div class="alert alert-info d-none" id="admin_alert">
                     المستخدم المدير يحصل على جميع الصلاحيات تلقائيًا.
                 </div>
 
@@ -52,29 +54,29 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_workers" name="can_manage_workers"{% if user.can_manage_workers %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_workers" name="can_manage_workers">
                             <label class="form-check-label" for="can_manage_workers">إدارة العمال</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_inventory" name="can_manage_inventory"{% if user.can_manage_inventory %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_inventory" name="can_manage_inventory">
                             <label class="form-check-label" for="can_manage_inventory">إدارة المخزون</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_production" name="can_manage_production"{% if user.can_manage_production %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_production" name="can_manage_production">
                             <label class="form-check-label" for="can_manage_production">إدارة الإنتاج</label>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_sales" name="can_manage_sales"{% if user.can_manage_sales %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_sales" name="can_manage_sales">
                             <label class="form-check-label" for="can_manage_sales">إدارة المبيعات</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_accounting" name="can_manage_accounting"{% if user.can_manage_accounting %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_accounting" name="can_manage_accounting">
                             <label class="form-check-label" for="can_manage_accounting">إدارة المحاسبة</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_reports" name="can_manage_reports"{% if user.can_manage_reports %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_reports" name="can_manage_reports">
                             <label class="form-check-label" for="can_manage_reports">عرض التقارير</label>
                         </div>
                     </div>
@@ -84,25 +86,25 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_crop_health" name="can_manage_crop_health"{% if user.can_manage_crop_health %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_crop_health" name="can_manage_crop_health">
                             <label class="form-check-label" for="can_manage_crop_health">إدارة صحة المحاصيل</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_production_batches" name="can_manage_production_batches"{% if user.can_manage_production_batches %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_production_batches" name="can_manage_production_batches">
                             <label class="form-check-label" for="can_manage_production_batches">إدارة دفعات الإنتاج</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_production_costs" name="can_manage_production_costs"{% if user.can_manage_production_costs %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_production_costs" name="can_manage_production_costs">
                             <label class="form-check-label" for="can_manage_production_costs">إدارة تكاليف الإنتاج</label>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_manage_production_stages" name="can_manage_production_stages"{% if user.can_manage_production_stages %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_manage_production_stages" name="can_manage_production_stages">
                             <label class="form-check-label" for="can_manage_production_stages">إدارة مراحل الإنتاج</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_view_analytics" name="can_view_analytics"{% if user.can_view_analytics %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_view_analytics" name="can_view_analytics">
                             <label class="form-check-label" for="can_view_analytics">عرض التحليلات</label>
                         </div>
                     </div>
@@ -112,25 +114,25 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_use_ai_assistant" name="can_use_ai_assistant"{% if user.can_use_ai_assistant %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_use_ai_assistant" name="can_use_ai_assistant">
                             <label class="form-check-label" for="can_use_ai_assistant">استخدام المساعد الذكي</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_view_ai_history" name="can_view_ai_history"{% if user.can_view_ai_history %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_view_ai_history" name="can_view_ai_history">
                             <label class="form-check-label" for="can_view_ai_history">عرض سجلات المحادثة</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_view_ai_reports" name="can_view_ai_reports"{% if user.can_view_ai_reports %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_view_ai_reports" name="can_view_ai_reports">
                             <label class="form-check-label" for="can_view_ai_reports">عرض التقارير الأسبوعية</label>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_use_ai_upload" name="can_use_ai_upload"{% if user.can_use_ai_upload %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_use_ai_upload" name="can_use_ai_upload">
                             <label class="form-check-label" for="can_use_ai_upload">رفع الصور للتحليل</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_use_ai_voice" name="can_use_ai_voice"{% if user.can_use_ai_voice %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_use_ai_voice" name="can_use_ai_voice">
                             <label class="form-check-label" for="can_use_ai_voice">استخدام الإدخال الصوتي</label>
                         </div>
                     </div>
@@ -140,13 +142,13 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_edit" name="can_edit"{% if user.can_edit %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_edit" name="can_edit">
                             <label class="form-check-label" for="can_edit">تعديل البيانات</label>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="can_delete" name="can_delete"{% if user.can_delete %} checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="can_delete" name="can_delete">
                             <label class="form-check-label" for="can_delete">حذف البيانات</label>
                         </div>
                     </div>
@@ -155,8 +157,8 @@
 
             <hr>
 
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> حفظ التعديلات
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-plus"></i> إنشاء المستخدم
             </button>
             <a href="{{ url_for('settings.users') }}" class="btn btn-secondary">
                 إلغاء

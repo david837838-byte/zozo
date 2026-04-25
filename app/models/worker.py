@@ -4,6 +4,7 @@ from datetime import datetime
 class Worker(db.Model):
     """نموذج العامل"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     name = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(20), nullable=True)
     email = db.Column(db.String(120), nullable=True)
@@ -27,6 +28,7 @@ class Worker(db.Model):
 class Shift(db.Model):
     """نموذج الوردية"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     worker_id = db.Column(db.Integer, db.ForeignKey('worker.id'), nullable=False)
     shift_type = db.Column(db.String(50), nullable=False)  # صباحي أو بعد ظهر
     work_date = db.Column(db.Date, nullable=False)
@@ -39,6 +41,7 @@ class Shift(db.Model):
 class WorkLog(db.Model):
     """نموذج تسجيل ساعات العمل"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     worker_id = db.Column(db.Integer, db.ForeignKey('worker.id'), nullable=False)
     work_date = db.Column(db.Date, nullable=False)
     hours = db.Column(db.Float, nullable=False)  # عدد الساعات
@@ -55,6 +58,7 @@ class WorkLog(db.Model):
 class MotorLog(db.Model):
     """نموذج تسجيل ساعات المحرك"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     worker_id = db.Column(db.Integer, db.ForeignKey('worker.id'), nullable=False)
     motor_name = db.Column(db.String(120), nullable=False)  # اسم المحرك
     start_date = db.Column(db.DateTime, nullable=False)
@@ -87,6 +91,7 @@ class MotorLog(db.Model):
 class Attendance(db.Model):
     """نموذج الحضور اليومي"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     worker_id = db.Column(db.Integer, db.ForeignKey('worker.id'), nullable=False)
     attendance_date = db.Column(db.Date, nullable=False)
     is_present = db.Column(db.Boolean, default=True)  # حاضر أم غائب
@@ -107,6 +112,7 @@ class Attendance(db.Model):
 class MonthlyAttendance(db.Model):
     """نموذج ملخص الحضور الشهري"""
     id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
     worker_id = db.Column(db.Integer, db.ForeignKey('worker.id'), nullable=False)
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)  # 1-12
