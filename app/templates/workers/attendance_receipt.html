@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إيصال حضور - {{ attendance.worker.name }}</title>
+    <style>
+        @page {
+            size: 50mm 50mm;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Tahoma, Arial, sans-serif;
+            background: #f4f4f4;
+        }
+
+        .sheet {
+            width: 50mm;
+            height: 50mm;
+            padding: 2.5mm;
+            background: #fff;
+            border: 1px dashed #999;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin: 12px auto;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 10px;
+            font-weight: 700;
+            margin-bottom: 2mm;
+        }
+
+        .meta {
+            font-size: 8px;
+            line-height: 1.35;
+        }
+
+        .meta .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 2mm;
+            border-bottom: 1px dotted #ddd;
+            padding: 0.45mm 0;
+        }
+
+        .meta .label {
+            color: #555;
+            white-space: nowrap;
+        }
+
+        .meta .value {
+            font-weight: 700;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 60%;
+        }
+
+        .footer {
+            font-size: 7px;
+            text-align: center;
+            color: #666;
+            margin-top: 1.5mm;
+            border-top: 1px solid #ddd;
+            padding-top: 1mm;
+        }
+
+        .status-present { color: #198754; }
+        .status-absent { color: #dc3545; }
+        .status-sick { color: #c18401; }
+        .status-vacation { color: #0dcaf0; }
+
+        .toolbar {
+            width: 50mm;
+            margin: 8px auto 0;
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .toolbar button {
+            border: 0;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-print {
+            background: #0d6efd;
+            color: #fff;
+        }
+
+        .btn-close {
+            background: #6c757d;
+            color: #fff;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+            }
+
+            .sheet {
+                margin: 0;
+                border: none;
+            }
+
+            .toolbar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sheet">
+        <div>
+            <div class="title">إيصال حضور عامل</div>
+            <div class="meta">
+                <div class="row">
+                    <span class="label">رقم الإيصال</span>
+                    <span class="value">{{ receipt_number }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">العامل</span>
+                    <span class="value">{{ attendance.worker.name }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">التاريخ</span>
+                    <span class="value">{{ attendance.attendance_date.strftime('%Y-%m-%d') }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">الحالة</span>
+                    <span class="value
+                        {% if attendance.status == 'حاضر' %}status-present{% endif %}
+                        {% if attendance.status == 'غياب' %}status-absent{% endif %}
+                        {% if attendance.status == 'مرض' %}status-sick{% endif %}
+                        {% if attendance.status == 'إجازة' %}status-vacation{% endif %}
+                    ">
+                        {{ attendance.status }}
+                    </span>
+                </div>
+                <div class="row">
+                    <span class="label">الساعات</span>
+                    <span class="value">{{ "%.2f"|format(attendance.hours_worked or 0) }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">ملاحظات</span>
+                    <span class="value">{{ attendance.notes or '-' }}</span>
+                </div>
+                <div class="row">
+                    <span class="label">دفعات اليوم</span>
+                    <span class="value">${{ "%.2f"|format(day_payment_total or 0) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            طُبع في {{ printed_at.strftime('%Y-%m-%d %H:%M') }}
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn-print" onclick="window.print()">طباعة</button>
+        <button class="btn-close" onclick="window.close()">إغلاق</button>
+    </div>
+</body>
+</html>

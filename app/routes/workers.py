@@ -644,6 +644,51 @@ def delete_attendance(attendance_id):
     return redirect(url_for('workers.attendance'))
 
 
+@bp.route('/attendance/<int:attendance_id>/receipt')
+@login_required
+def attendance_receipt(attendance_id):
+    """عرض إيصال حضور قابل للطباعة بمقاس 50x50."""
+    if not current_user.can_manage_workers and not current_user.is_admin:
+        flash('ليس لديك صلاحية الوصول إلى هذا القسم', 'danger')
+        return redirect(url_for('workers.index'))
+
+    attendance = Attendance.query.get_or_404(attendance_id)
+    receipt_number = f"AT-{attendance.attendance_date.strftime('%Y%m%d')}-{attendance.id:06d}"
+
+    day_transactions = (
+        Transaction.query.filter(
+            Transaction.reference_id == attendance.worker_id,
+            Transaction.reference_type.in_(WORKER_REFERENCE_TYPE_ALIASES),
+            Transaction.transaction_type.in_(EXPENSE_TRANSACTION_TYPE_ALIASES),
+            Transaction.transaction_date == attendance.attendance_date,
+        )
+        .order_by(Transaction.id.asc())
+        .all()
+    )
+
+    day_payment_total = 0.0
+    day_loans = 0.0
+    day_advances = 0.0
+    for transaction in day_transactions:
+        amount = transaction.amount or 0.0
+        day_payment_total += amount
+        payment_kind = _detect_worker_payment_kind(transaction)
+        if payment_kind == 'loan':
+            day_loans += amount
+        elif payment_kind == 'advance':
+            day_advances += amount
+
+    return render_template(
+        'workers/attendance_receipt.html',
+        attendance=attendance,
+        receipt_number=receipt_number,
+        day_payment_total=day_payment_total,
+        day_loans=day_loans,
+        day_advances=day_advances,
+        printed_at=datetime.now(),
+    )
+
+
 def _build_or_refresh_monthly_summary(worker, year, month, persist=False):
     """Build monthly summary from daily attendance and optionally persist it."""
     attendances = Attendance.query.filter(

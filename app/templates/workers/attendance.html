@@ -108,6 +108,10 @@
                             <td>{{ attendance.hours_worked }} ساعة</td>
                             <td>{{ attendance.notes or '-' }}</td>
                             <td>
+                                <a href="{{ url_for('workers.attendance_receipt', attendance_id=attendance.id) }}"
+                                   class="btn btn-sm btn-info" target="_blank" title="طباعة إيصال">
+                                    <i class="fas fa-receipt"></i>
+                                </a>
                                 <a href="{{ url_for('workers.edit_attendance', attendance_id=attendance.id) }}" 
                                    class="btn btn-sm btn-warning">
                                     <i class="fas fa-edit"></i>
