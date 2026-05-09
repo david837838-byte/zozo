@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from app import db
 from app.models.account import Account
 from app.models.user import User
+from app.session_tracker import create_login_session, mark_current_session_logged_out
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -52,6 +53,11 @@ def login():
 
             login_user(user)
             session['account_id'] = user.account_id
+            try:
+                create_login_session(user)
+            except Exception:
+                db.session.rollback()
+                flash('تم تسجيل الدخول لكن تعذر تسجيل معلومات الجهاز حالياً', 'warning')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('home.index'))
 
@@ -64,6 +70,10 @@ def login():
 @login_required
 def logout():
     """تسجيل الخروج."""
+    try:
+        mark_current_session_logged_out(user_id=current_user.id)
+    except Exception:
+        db.session.rollback()
     logout_user()
     session.pop('account_id', None)
     flash('تم تسجيل الخروج بنجاح', 'success')

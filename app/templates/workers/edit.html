@@ -40,10 +40,39 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
+                    <label for="family_id" class="form-label">العائلة (اختياري)</label>
+                    <select class="form-select" id="family_id" name="family_id">
+                        <option value=""{% if not worker.family_id %} selected{% endif %}>-- بدون عائلة --</option>
+                        {% for family in families %}
+                            <option value="{{ family.id }}"{% if worker.family_id == family.id %} selected{% endif %}>
+                                {{ family.family_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="gender" class="form-label">الجنس</label>
+                    <select class="form-select" id="gender" name="gender">
+                        <option value=""{% if not worker.gender %} selected{% endif %}>-- اختر --</option>
+                        <option value="ذكر"{% if worker.gender in ['ذكر', 'شاب'] %} selected{% endif %}>شاب</option>
+                        <option value="أنثى"{% if worker.gender in ['أنثى', 'انثى', 'بنت'] %} selected{% endif %}>بنت</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="is_monthly" name="is_monthly"{% if worker.is_monthly %} checked{% endif %}>
                         <label class="form-check-label" for="is_monthly">عامل شهري</label>
                     </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="use_family_rates" name="use_family_rates"{% if worker.use_family_rates %} checked{% endif %}>
+                        <label class="form-check-label" for="use_family_rates">استخدام تسعير العائلة</label>
+                    </div>
+                    <small class="text-muted">عند التفعيل يتم أخذ سعر الشاب/البنت من العائلة تلقائيًا.</small>
                 </div>
             </div>
 

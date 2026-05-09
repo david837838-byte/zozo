@@ -116,6 +116,19 @@ def create_app(config_name='development'):
         return None
 
     @app.before_request
+    def track_active_device_session():
+        """Keep tracked user device session alive while browsing."""
+        if not getattr(current_user, 'is_authenticated', False):
+            return None
+        try:
+            from app.session_tracker import ensure_current_session_tracked
+
+            ensure_current_session_tracked()
+        except Exception:
+            db.session.rollback()
+        return None
+
+    @app.before_request
     def enforce_delete_csrf():
         """Require CSRF token on all delete POST handlers."""
         endpoint = request.endpoint or ""

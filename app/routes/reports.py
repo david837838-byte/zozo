@@ -1,4 +1,4 @@
-import os
+﻿import os
 import re
 from datetime import date, datetime, timedelta
 from io import BytesIO
@@ -37,6 +37,7 @@ bp = Blueprint("reports", __name__, url_prefix="/reports")
 
 _PDF_FONT_NAME = None
 _ARABIC_REGEX = re.compile(r"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]")
+_MOJIBAKE_HINTS = ("Ø", "Ù", "Ã", "â")
 
 try:
     import arabic_reshaper
@@ -65,6 +66,18 @@ def _require_financial_access():
         flash("ليس لديك صلاحية للوصول إلى هذا التقرير", "danger")
         return redirect(url_for("home.index"))
     return None
+
+
+def _repair_mojibake_text(value):
+    """Best-effort fix for UTF-8 text that was decoded as latin-1/cp1252."""
+    if not isinstance(value, str) or not value:
+        return value
+    if not any(marker in value for marker in _MOJIBAKE_HINTS):
+        return value
+    try:
+        return value.encode("latin-1").decode("utf-8")
+    except UnicodeError:
+        return value
 
 
 def _parse_date(value):
@@ -131,7 +144,7 @@ def _query_value(query, aggregate_expression):
 def _detect_worker_payment_kind(transaction):
     """Detect worker payment kind from marker/description."""
     notes = transaction.notes or ""
-    description = transaction.description or ""
+    description = _repair_mojibake_text(transaction.description or "")
 
     if "worker_payment_kind=loan" in notes:
         return "loan"
@@ -154,12 +167,14 @@ def _export_cell_value(value):
         return value.strftime("%Y-%m-%d")
     if isinstance(value, float):
         return round(value, 2)
+    if isinstance(value, str):
+        return _repair_mojibake_text(value)
     return value
 
 
 def _shape_text_for_pdf(value):
     """Prepare Arabic text for PDF rendering (reshaping + bidi)."""
-    raw_text = "" if value is None else str(value)
+    raw_text = _repair_mojibake_text("" if value is None else str(value))
     if not raw_text:
         return raw_text
 
@@ -190,6 +205,7 @@ def _pdf_font_name():
 
     candidates = [
         r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\Tahoma.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     ]
     for font_path in candidates:
@@ -302,11 +318,12 @@ def _build_excel_response(report_key, report_title, sections, from_date, to_date
 def _build_pdf_response(report_key, report_title, sections, from_date, to_date):
     try:
         from reportlab.lib import colors
+        from reportlab.lib.enums import TA_RIGHT
         from reportlab.lib.pagesizes import A4, landscape
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
     except Exception:
-        flash("تصدير PDF غير متاح حالياً", "warning")
+        flash("تصدير PDF غير متاح حاليًا", "warning")
         return redirect(
             url_for(
                 request.endpoint,
@@ -323,14 +340,20 @@ def _build_pdf_response(report_key, report_title, sections, from_date, to_date):
     title_style = styles["Heading2"].clone("ReportTitle")
     title_style.fontName = font_name
     title_style.fontSize = 14
+    title_style.alignment = TA_RIGHT
+    title_style.wordWrap = "RTL"
 
     meta_style = styles["Normal"].clone("ReportMeta")
     meta_style.fontName = font_name
     meta_style.fontSize = 10
+    meta_style.alignment = TA_RIGHT
+    meta_style.wordWrap = "RTL"
 
     section_style = styles["Heading4"].clone("ReportSection")
     section_style.fontName = font_name
     section_style.fontSize = 11
+    section_style.alignment = TA_RIGHT
+    section_style.wordWrap = "RTL"
 
     flow = [
         Paragraph(_shape_text_for_pdf(report_title), title_style),
@@ -422,23 +445,84 @@ def workers_detailed_report():
 
     from_date, to_date, from_date_str, to_date_str = _read_date_range()
 
+    selected_worker_id_raw = (request.args.get("worker_id") or "").strip()
     workers = Worker.query.order_by(Worker.is_active.desc(), Worker.name.asc()).all()
-    active_workers = sum(1 for worker in workers if worker.is_active)
-    inactive_workers = len(workers) - active_workers
-    monthly_workers = sum(1 for worker in workers if worker.is_monthly)
-    hourly_workers = len(workers) - monthly_workers
+    worker_lookup = {worker.id: worker for worker in workers}
 
-    work_logs_query = _apply_date_range(WorkLog.query, WorkLog.work_date, from_date, to_date)
-    motor_logs_query = _apply_datetime_range(MotorLog.query, MotorLog.start_date, from_date, to_date)
-    attendance_query = _apply_date_range(Attendance.query, Attendance.attendance_date, from_date, to_date)
+    selected_worker_id = None
+    if selected_worker_id_raw:
+        try:
+            candidate_worker_id = int(selected_worker_id_raw)
+            if candidate_worker_id in worker_lookup:
+                selected_worker_id = candidate_worker_id
+            else:
+                flash("العامل المحدد غير موجود", "warning")
+        except ValueError:
+            flash("فلتر العامل غير صالح", "warning")
+
+    selected_worker = worker_lookup.get(selected_worker_id)
+    filtered_workers = [selected_worker] if selected_worker else workers
+    filtered_worker_ids = {worker.id for worker in filtered_workers}
+
+    active_workers = sum(1 for worker in filtered_workers if worker.is_active)
+    inactive_workers = len(filtered_workers) - active_workers
+    monthly_workers = sum(1 for worker in filtered_workers if worker.is_monthly)
+    hourly_workers = len(filtered_workers) - monthly_workers
+
+    work_logs_query = WorkLog.query
+    motor_logs_query = MotorLog.query
+    attendance_query = Attendance.query
+    closed_accounts_query = ClosedWorkerAccount.query
+
+    if selected_worker_id is not None:
+        work_logs_query = work_logs_query.filter(WorkLog.worker_id == selected_worker_id)
+        motor_logs_query = motor_logs_query.filter(MotorLog.worker_id == selected_worker_id)
+        attendance_query = attendance_query.filter(Attendance.worker_id == selected_worker_id)
+        closed_accounts_query = closed_accounts_query.filter(
+            ClosedWorkerAccount.worker_id == selected_worker_id
+        )
+
+    work_logs_query = _apply_date_range(work_logs_query, WorkLog.work_date, from_date, to_date)
+    motor_logs_query = _apply_datetime_range(
+        motor_logs_query, MotorLog.start_date, from_date, to_date
+    )
+    attendance_query = _apply_date_range(
+        attendance_query, Attendance.attendance_date, from_date, to_date
+    )
     closed_accounts_query = _apply_date_range(
-        ClosedWorkerAccount.query, ClosedWorkerAccount.closure_date, from_date, to_date
+        closed_accounts_query,
+        ClosedWorkerAccount.closure_date,
+        from_date,
+        to_date,
     )
 
     work_log_count = work_logs_query.count()
-    attendance_hours = _query_value(attendance_query, func.sum(Attendance.hours_worked))
+    attendance_hours = _query_value(
+        attendance_query.filter(
+            (Attendance.status == "حاضر") | (Attendance.is_present.is_(True))
+        ),
+        func.sum(Attendance.hours_worked),
+    )
+
     if work_log_count:
         total_work_hours = _query_value(work_logs_query, func.sum(WorkLog.hours))
+        worker_hours_rows = (
+            work_logs_query.with_entities(
+                WorkLog.worker_id.label("worker_id"),
+                func.coalesce(func.sum(WorkLog.hours), 0).label("hours"),
+                func.count(WorkLog.id).label("entries"),
+            )
+            .group_by(WorkLog.worker_id)
+            .all()
+        )
+        worker_days_rows = (
+            work_logs_query.with_entities(
+                WorkLog.worker_id.label("worker_id"),
+                func.count(func.distinct(WorkLog.work_date)).label("worked_days"),
+            )
+            .group_by(WorkLog.worker_id)
+            .all()
+        )
         top_workers_by_hours = (
             work_logs_query.join(Worker, Worker.id == WorkLog.worker_id)
             .with_entities(
@@ -454,8 +538,28 @@ def workers_detailed_report():
         )
     else:
         total_work_hours = attendance_hours
+        attended_query = attendance_query.filter(
+            (Attendance.status == "حاضر") | (Attendance.is_present.is_(True))
+        )
+        worker_hours_rows = (
+            attended_query.with_entities(
+                Attendance.worker_id.label("worker_id"),
+                func.coalesce(func.sum(Attendance.hours_worked), 0).label("hours"),
+                func.count(Attendance.id).label("entries"),
+            )
+            .group_by(Attendance.worker_id)
+            .all()
+        )
+        worker_days_rows = (
+            attended_query.with_entities(
+                Attendance.worker_id.label("worker_id"),
+                func.count(func.distinct(Attendance.attendance_date)).label("worked_days"),
+            )
+            .group_by(Attendance.worker_id)
+            .all()
+        )
         top_workers_by_hours = (
-            attendance_query.join(Worker, Worker.id == Attendance.worker_id)
+            attended_query.join(Worker, Worker.id == Attendance.worker_id)
             .with_entities(
                 Worker.id,
                 Worker.name,
@@ -467,6 +571,7 @@ def workers_detailed_report():
             .limit(15)
             .all()
         )
+
     total_motor_hours = _query_value(motor_logs_query, func.sum(MotorLog.total_hours))
     attendance_count = attendance_query.count()
 
@@ -479,15 +584,105 @@ def workers_detailed_report():
         (status or "غير محدد"): count for status, count in attendance_status_rows
     }
 
+    hours_by_worker = {
+        row.worker_id: float(row.hours or 0.0) for row in worker_hours_rows
+    }
+    entries_by_worker = {
+        row.worker_id: int(row.entries or 0) for row in worker_hours_rows
+    }
+    worked_days_by_worker = {
+        row.worker_id: int(row.worked_days or 0) for row in worker_days_rows
+    }
+
+    worker_transactions_query = Transaction.query.filter(
+        Transaction.reference_type.in_(WORKER_REFERENCE_TYPE_ALIASES)
+    )
+    if selected_worker_id is not None:
+        worker_transactions_query = worker_transactions_query.filter(
+            Transaction.reference_id == selected_worker_id
+        )
+    worker_transactions_query = _apply_date_range(
+        worker_transactions_query,
+        Transaction.transaction_date,
+        from_date,
+        to_date,
+    )
+    worker_transactions = worker_transactions_query.all()
+
+    worker_payment_summary = {}
+    for transaction in worker_transactions:
+        reference_id = transaction.reference_id
+        if reference_id is None or reference_id not in filtered_worker_ids:
+            continue
+        if not is_expense_transaction(transaction.transaction_type):
+            continue
+
+        amount = float(transaction.amount or 0.0)
+        summary = worker_payment_summary.setdefault(
+            reference_id,
+            {"loans": 0.0, "advances": 0.0, "total_payments": 0.0},
+        )
+        payment_kind = _detect_worker_payment_kind(transaction)
+        if payment_kind == "loan":
+            summary["loans"] += amount
+        elif payment_kind == "advance":
+            summary["advances"] += amount
+        summary["total_payments"] += amount
+
+    worker_financial_rows = []
+    for worker in filtered_workers:
+        total_hours_for_worker = float(hours_by_worker.get(worker.id, 0.0))
+        worked_days_for_worker = int(worked_days_by_worker.get(worker.id, 0))
+        total_entries_for_worker = int(entries_by_worker.get(worker.id, 0))
+
+        calculated_salary = (
+            float(worker.monthly_salary or 0.0)
+            if worker.is_monthly
+            else total_hours_for_worker * float(worker.hourly_rate or 0.0)
+        )
+
+        payments = worker_payment_summary.get(
+            worker.id,
+            {"loans": 0.0, "advances": 0.0, "total_payments": 0.0},
+        )
+        total_loans = float(payments["loans"])
+        total_advances = float(payments["advances"])
+        total_payments = float(payments["total_payments"])
+        remaining_salary = calculated_salary - total_payments
+
+        worker_financial_rows.append(
+            {
+                "worker_id": worker.id,
+                "worker_name": worker.name,
+                "worker_type": "شهري" if worker.is_monthly else "بالساعة",
+                "total_hours": total_hours_for_worker,
+                "worked_days": worked_days_for_worker,
+                "entries": total_entries_for_worker,
+                "salary": calculated_salary,
+                "loans": total_loans,
+                "advances": total_advances,
+                "total_payments": total_payments,
+                "remaining_salary": remaining_salary,
+            }
+        )
+
+    total_calculated_salaries = sum(row["salary"] for row in worker_financial_rows)
+    total_worker_loans = sum(row["loans"] for row in worker_financial_rows)
+    total_worker_advances = sum(row["advances"] for row in worker_financial_rows)
+    total_worker_payments = sum(row["total_payments"] for row in worker_financial_rows)
+    total_remaining_balances = sum(row["remaining_salary"] for row in worker_financial_rows)
+
     closed_accounts = closed_accounts_query.order_by(ClosedWorkerAccount.closure_date.desc()).all()
     total_closed_balance = sum(account.final_balance or 0 for account in closed_accounts)
+
+    worker_scope_label = f" - {selected_worker.name}" if selected_worker else ""
 
     export_sections = [
         {
             "title": "ملخص العمال",
             "headers": ["المؤشر", "القيمة"],
             "rows": [
-                ["إجمالي العمال", len(workers)],
+                ["إجمالي العمال في النتيجة", len(filtered_workers)],
                 ["العمال النشطون", active_workers],
                 ["العمال المعطلون", inactive_workers],
                 ["عمال شهري", monthly_workers],
@@ -495,8 +690,43 @@ def workers_detailed_report():
                 ["سجلات الحضور", attendance_count],
                 ["إجمالي ساعات العمل", total_work_hours],
                 ["إجمالي ساعات المحركات", total_motor_hours],
+                ["إجمالي الرواتب المحسوبة", total_calculated_salaries],
+                ["إجمالي السلف", total_worker_loans],
+                ["إجمالي دفعات الحساب", total_worker_advances],
+                ["إجمالي الحسومات على العمال", total_worker_payments],
+                ["إجمالي المتبقي", total_remaining_balances],
                 ["عدد الحسابات المسكرة", len(closed_accounts)],
                 ["إجمالي أرصدة الحسابات المسكرة", total_closed_balance],
+            ],
+        },
+        {
+            "title": "ملخص مالي وتشغيلي لكل عامل",
+            "headers": [
+                "العامل",
+                "النوع",
+                "إجمالي الساعات",
+                "أيام العمل",
+                "عدد السجلات",
+                "الراتب المحسوب",
+                "السلف",
+                "دفعات الحساب",
+                "إجمالي الحسومات",
+                "المتبقي",
+            ],
+            "rows": [
+                [
+                    row["worker_name"],
+                    row["worker_type"],
+                    row["total_hours"],
+                    row["worked_days"],
+                    row["entries"],
+                    row["salary"],
+                    row["loans"],
+                    row["advances"],
+                    row["total_payments"],
+                    row["remaining_salary"],
+                ]
+                for row in worker_financial_rows
             ],
         },
         {
@@ -528,7 +758,7 @@ def workers_detailed_report():
     ]
     export_response = _maybe_export(
         "workers_detailed_report",
-        "تقرير العمال التفصيلي",
+        f"تقرير العمال التفصيلي{worker_scope_label}",
         export_sections,
         from_date,
         to_date,
@@ -539,6 +769,9 @@ def workers_detailed_report():
     return render_template(
         "reports/workers_detailed_report.html",
         workers=workers,
+        filtered_workers=filtered_workers,
+        selected_worker=selected_worker,
+        selected_worker_id=selected_worker_id,
         active_workers=active_workers,
         inactive_workers=inactive_workers,
         monthly_workers=monthly_workers,
@@ -547,6 +780,12 @@ def workers_detailed_report():
         total_motor_hours=total_motor_hours,
         attendance_count=attendance_count,
         attendance_status=attendance_status,
+        worker_financial_rows=worker_financial_rows,
+        total_calculated_salaries=total_calculated_salaries,
+        total_worker_loans=total_worker_loans,
+        total_worker_advances=total_worker_advances,
+        total_worker_payments=total_worker_payments,
+        total_remaining_balances=total_remaining_balances,
         top_workers_by_hours=top_workers_by_hours,
         closed_accounts=closed_accounts,
         total_closed_balance=total_closed_balance,
@@ -582,11 +821,11 @@ def inventory_detailed_report():
         InventoryTransaction.query, InventoryTransaction.transaction_date, from_date, to_date
     )
     in_qty = _query_value(
-        transactions_query.filter(InventoryTransaction.transaction_type == "دخول"),
+        transactions_query.filter(InventoryTransaction.transaction_type == "Ø¯Ø®ÙˆÙ„"),
         func.sum(InventoryTransaction.quantity),
     )
     out_qty = _query_value(
-        transactions_query.filter(InventoryTransaction.transaction_type == "خروج"),
+        transactions_query.filter(InventoryTransaction.transaction_type == "Ø®Ø±ÙˆØ¬"),
         func.sum(InventoryTransaction.quantity),
     )
 
@@ -638,48 +877,48 @@ def inventory_detailed_report():
 
     export_sections = [
         {
-            "title": "ملخص المخزون",
-            "headers": ["المؤشر", "القيمة"],
+            "title": "Ù…Ù„Ø®Øµ Ø§Ù„Ù…Ø®Ø²ÙˆÙ†",
+            "headers": ["Ø§Ù„Ù…Ø¤Ø´Ø±", "Ø§Ù„Ù‚ÙŠÙ…Ø©"],
             "rows": [
-                ["إجمالي العناصر", len(items)],
-                ["عناصر نفد مخزونها", len(out_of_stock_items)],
-                ["عناصر منخفضة المخزون", len(low_stock_items)],
-                ["قيمة المخزون", stock_value],
-                ["إجمالي كمية الشراء (ضمن الفلترة)", purchase_total_qty],
-                ["إجمالي تكلفة الشراء (ضمن الفلترة)", purchase_total_cost],
-                ["كمية دخول (ضمن الفلترة)", in_qty],
-                ["كمية خروج (ضمن الفلترة)", out_qty],
-                ["عدد أنواع الصناديق", box_types_count],
-                ["مشتريات الصناديق كمية", box_purchases_total_qty],
-                ["مشتريات الصناديق تكلفة", box_purchases_total_cost],
-                ["استخدام الصناديق كمية", box_usage_total_qty],
-                ["استخدام الصناديق تكلفة", box_usage_total_cost],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø¹Ù†Ø§ØµØ±", len(items)],
+                ["Ø¹Ù†Ø§ØµØ± Ù†ÙØ¯ Ù…Ø®Ø²ÙˆÙ†Ù‡Ø§", len(out_of_stock_items)],
+                ["Ø¹Ù†Ø§ØµØ± Ù…Ù†Ø®ÙØ¶Ø© Ø§Ù„Ù…Ø®Ø²ÙˆÙ†", len(low_stock_items)],
+                ["Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø®Ø²ÙˆÙ†", stock_value],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ ÙƒÙ…ÙŠØ© Ø§Ù„Ø´Ø±Ø§Ø¡ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", purchase_total_qty],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ ØªÙƒÙ„ÙØ© Ø§Ù„Ø´Ø±Ø§Ø¡ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", purchase_total_cost],
+                ["ÙƒÙ…ÙŠØ© Ø¯Ø®ÙˆÙ„ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", in_qty],
+                ["ÙƒÙ…ÙŠØ© Ø®Ø±ÙˆØ¬ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", out_qty],
+                ["Ø¹Ø¯Ø¯ Ø£Ù†ÙˆØ§Ø¹ Ø§Ù„ØµÙ†Ø§Ø¯ÙŠÙ‚", box_types_count],
+                ["Ù…Ø´ØªØ±ÙŠØ§Øª Ø§Ù„ØµÙ†Ø§Ø¯ÙŠÙ‚ ÙƒÙ…ÙŠØ©", box_purchases_total_qty],
+                ["Ù…Ø´ØªØ±ÙŠØ§Øª Ø§Ù„ØµÙ†Ø§Ø¯ÙŠÙ‚ ØªÙƒÙ„ÙØ©", box_purchases_total_cost],
+                ["Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„ØµÙ†Ø§Ø¯ÙŠÙ‚ ÙƒÙ…ÙŠØ©", box_usage_total_qty],
+                ["Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„ØµÙ†Ø§Ø¯ÙŠÙ‚ ØªÙƒÙ„ÙØ©", box_usage_total_cost],
             ],
         },
         {
-            "title": "ملخص حسب الفئة",
-            "headers": ["الفئة", "عدد العناصر", "إجمالي الكمية"],
+            "title": "Ù…Ù„Ø®Øµ Ø­Ø³Ø¨ Ø§Ù„ÙØ¦Ø©",
+            "headers": ["Ø§Ù„ÙØ¦Ø©", "Ø¹Ø¯Ø¯ Ø§Ù„Ø¹Ù†Ø§ØµØ±", "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ÙƒÙ…ÙŠØ©"],
             "rows": [[row.category, row.items_count, row.total_qty] for row in category_summary],
         },
         {
-            "title": "أكثر المواد استهلاكاً",
-            "headers": ["المادة", "الفئة", "الكمية", "عدد السجلات"],
+            "title": "Ø£ÙƒØ«Ø± Ø§Ù„Ù…ÙˆØ§Ø¯ Ø§Ø³ØªÙ‡Ù„Ø§ÙƒØ§Ù‹",
+            "headers": ["Ø§Ù„Ù…Ø§Ø¯Ø©", "Ø§Ù„ÙØ¦Ø©", "Ø§Ù„ÙƒÙ…ÙŠØ©", "Ø¹Ø¯Ø¯ Ø§Ù„Ø³Ø¬Ù„Ø§Øª"],
             "rows": [
                 [row.item_name, row.category, row.used_qty, row.entries]
                 for row in top_consumed_items
             ],
         },
         {
-            "title": "آخر مشتريات المخزون",
-            "headers": ["التاريخ", "العنصر", "الكمية", "التكلفة"],
+            "title": "Ø¢Ø®Ø± Ù…Ø´ØªØ±ÙŠØ§Øª Ø§Ù„Ù…Ø®Ø²ÙˆÙ†",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„Ø¹Ù†ØµØ±", "Ø§Ù„ÙƒÙ…ÙŠØ©", "Ø§Ù„ØªÙƒÙ„ÙØ©"],
             "rows": [
                 [purchase.purchase_date, purchase.item.name, purchase.quantity, purchase.total_cost]
                 for purchase in recent_purchases
             ],
         },
         {
-            "title": "آخر حركات المخزون",
-            "headers": ["التاريخ", "العنصر", "النوع", "الكمية"],
+            "title": "Ø¢Ø®Ø± Ø­Ø±ÙƒØ§Øª Ø§Ù„Ù…Ø®Ø²ÙˆÙ†",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„Ø¹Ù†ØµØ±", "Ø§Ù„Ù†ÙˆØ¹", "Ø§Ù„ÙƒÙ…ÙŠØ©"],
             "rows": [
                 [
                     transaction.transaction_date,
@@ -691,8 +930,8 @@ def inventory_detailed_report():
             ],
         },
         {
-            "title": "آخر سجلات الاستهلاك العام",
-            "headers": ["التاريخ", "المادة", "النوع", "الكمية"],
+            "title": "Ø¢Ø®Ø± Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ø¹Ø§Ù…",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„Ù…Ø§Ø¯Ø©", "Ø§Ù„Ù†ÙˆØ¹", "Ø§Ù„ÙƒÙ…ÙŠØ©"],
             "rows": [
                 [
                     consumption.consumption_date,
@@ -706,7 +945,7 @@ def inventory_detailed_report():
     ]
     export_response = _maybe_export(
         "inventory_detailed_report",
-        "تقرير المخزون التفصيلي",
+        "ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ù…Ø®Ø²ÙˆÙ† Ø§Ù„ØªÙØµÙŠÙ„ÙŠ",
         export_sections,
         from_date,
         to_date,
@@ -828,20 +1067,20 @@ def production_detailed_report():
 
     export_sections = [
         {
-            "title": "ملخص الإنتاج",
-            "headers": ["المؤشر", "القيمة"],
+            "title": "Ù…Ù„Ø®Øµ Ø§Ù„Ø¥Ù†ØªØ§Ø¬",
+            "headers": ["Ø§Ù„Ù…Ø¤Ø´Ø±", "Ø§Ù„Ù‚ÙŠÙ…Ø©"],
             "rows": [
-                ["إجمالي الأصناف", len(crops)],
-                ["الأصناف النشطة", active_crops],
-                ["سجلات الإنتاج (ضمن الفلترة)", production_records_count],
-                ["كمية الإنتاج (ضمن الفلترة)", total_production_qty],
-                ["سجلات استهلاك الأصناف (ضمن الفلترة)", crop_consumption_count],
-                ["كمية الاستهلاك (ضمن الفلترة)", crop_consumption_qty],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø£ØµÙ†Ø§Ù", len(crops)],
+                ["Ø§Ù„Ø£ØµÙ†Ø§Ù Ø§Ù„Ù†Ø´Ø·Ø©", active_crops],
+                ["Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø¥Ù†ØªØ§Ø¬ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", production_records_count],
+                ["ÙƒÙ…ÙŠØ© Ø§Ù„Ø¥Ù†ØªØ§Ø¬ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", total_production_qty],
+                ["Ø³Ø¬Ù„Ø§Øª Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ø£ØµÙ†Ø§Ù (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", crop_consumption_count],
+                ["ÙƒÙ…ÙŠØ© Ø§Ù„Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", crop_consumption_qty],
             ],
         },
         {
-            "title": "أداء الأصناف",
-            "headers": ["الصنف", "الفئة", "كمية الإنتاج", "سجلات الإنتاج", "كمية المبيعات", "الإيراد"],
+            "title": "Ø£Ø¯Ø§Ø¡ Ø§Ù„Ø£ØµÙ†Ø§Ù",
+            "headers": ["Ø§Ù„ØµÙ†Ù", "Ø§Ù„ÙØ¦Ø©", "ÙƒÙ…ÙŠØ© Ø§Ù„Ø¥Ù†ØªØ§Ø¬", "Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø¥Ù†ØªØ§Ø¬", "ÙƒÙ…ÙŠØ© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª", "Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯"],
             "rows": [
                 [
                     row["crop_name"],
@@ -855,21 +1094,21 @@ def production_detailed_report():
             ],
         },
         {
-            "title": "أعلى استهلاك للأصناف",
-            "headers": ["الصنف", "كمية الاستهلاك", "عدد السجلات"],
+            "title": "Ø£Ø¹Ù„Ù‰ Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ù„Ù„Ø£ØµÙ†Ø§Ù",
+            "headers": ["Ø§Ù„ØµÙ†Ù", "ÙƒÙ…ÙŠØ© Ø§Ù„Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ", "Ø¹Ø¯Ø¯ Ø§Ù„Ø³Ø¬Ù„Ø§Øª"],
             "rows": [[row.name, row.used_qty, row.entries] for row in top_consumption_by_crop],
         },
         {
-            "title": "آخر سجلات الإنتاج",
-            "headers": ["التاريخ", "الصنف", "الكمية", "الوحدة", "الجودة"],
+            "title": "Ø¢Ø®Ø± Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø¥Ù†ØªØ§Ø¬",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„ØµÙ†Ù", "Ø§Ù„ÙƒÙ…ÙŠØ©", "Ø§Ù„ÙˆØ­Ø¯Ø©", "Ø§Ù„Ø¬ÙˆØ¯Ø©"],
             "rows": [
                 [production.production_date, production.crop.name, production.quantity, production.unit, production.quality or "-"]
                 for production in recent_productions
             ],
         },
         {
-            "title": "آخر استهلاك الأصناف",
-            "headers": ["التاريخ", "الصنف", "المادة", "الكمية"],
+            "title": "Ø¢Ø®Ø± Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ø£ØµÙ†Ø§Ù",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„ØµÙ†Ù", "Ø§Ù„Ù…Ø§Ø¯Ø©", "Ø§Ù„ÙƒÙ…ÙŠØ©"],
             "rows": [
                 [
                     consumption.consumption_date,
@@ -883,7 +1122,7 @@ def production_detailed_report():
     ]
     export_response = _maybe_export(
         "production_detailed_report",
-        "تقرير الإنتاج التفصيلي",
+        "ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ø¥Ù†ØªØ§Ø¬ Ø§Ù„ØªÙØµÙŠÙ„ÙŠ",
         export_sections,
         from_date,
         to_date,
@@ -927,7 +1166,7 @@ def sales_detailed_report():
     paid_revenue = sum(
         (record.total_price or 0)
         for record in sales_records
-        if record.payment_status == "مدفوع"
+        if record.payment_status == "Ù…Ø¯ÙÙˆØ¹"
     )
     unpaid_revenue = total_revenue - paid_revenue
 
@@ -968,7 +1207,7 @@ def sales_detailed_report():
     )
 
     recent_unpaid = (
-        sales_query.filter(Sales.payment_status != "مدفوع")
+        sales_query.filter(Sales.payment_status != "Ù…Ø¯ÙÙˆØ¹")
         .order_by(Sales.sale_date.desc())
         .limit(25)
         .all()
@@ -976,34 +1215,34 @@ def sales_detailed_report():
 
     export_sections = [
         {
-            "title": "ملخص المبيعات",
-            "headers": ["المؤشر", "القيمة"],
+            "title": "Ù…Ù„Ø®Øµ Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª",
+            "headers": ["Ø§Ù„Ù…Ø¤Ø´Ø±", "Ø§Ù„Ù‚ÙŠÙ…Ø©"],
             "rows": [
-                ["عدد عمليات البيع", sales_count],
-                ["إجمالي الكمية", total_quantity],
-                ["إجمالي الإيراد", total_revenue],
-                ["إيراد محصل", paid_revenue],
-                ["إيراد غير محصل", unpaid_revenue],
+                ["Ø¹Ø¯Ø¯ Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„Ø¨ÙŠØ¹", sales_count],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ÙƒÙ…ÙŠØ©", total_quantity],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯", total_revenue],
+                ["Ø¥ÙŠØ±Ø§Ø¯ Ù…Ø­ØµÙ„", paid_revenue],
+                ["Ø¥ÙŠØ±Ø§Ø¯ ØºÙŠØ± Ù…Ø­ØµÙ„", unpaid_revenue],
             ],
         },
         {
-            "title": "التحصيل حسب الحالة",
-            "headers": ["الحالة", "عدد السجلات", "القيمة"],
+            "title": "Ø§Ù„ØªØ­ØµÙŠÙ„ Ø­Ø³Ø¨ Ø§Ù„Ø­Ø§Ù„Ø©",
+            "headers": ["Ø§Ù„Ø­Ø§Ù„Ø©", "Ø¹Ø¯Ø¯ Ø§Ù„Ø³Ø¬Ù„Ø§Øª", "Ø§Ù„Ù‚ÙŠÙ…Ø©"],
             "rows": [[row.payment_status, row.entries, row.amount] for row in payment_status_summary],
         },
         {
-            "title": "أعلى المشترين",
-            "headers": ["المشتري", "عدد العمليات", "الكمية", "الإيراد"],
+            "title": "Ø£Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø´ØªØ±ÙŠÙ†",
+            "headers": ["Ø§Ù„Ù…Ø´ØªØ±ÙŠ", "Ø¹Ø¯Ø¯ Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª", "Ø§Ù„ÙƒÙ…ÙŠØ©", "Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯"],
             "rows": [[row.buyer_name, row.entries, row.qty, row.revenue] for row in sales_by_buyer],
         },
         {
-            "title": "المبيعات حسب الصنف",
-            "headers": ["الصنف", "عدد العمليات", "الكمية", "الإيراد"],
+            "title": "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª Ø­Ø³Ø¨ Ø§Ù„ØµÙ†Ù",
+            "headers": ["Ø§Ù„ØµÙ†Ù", "Ø¹Ø¯Ø¯ Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª", "Ø§Ù„ÙƒÙ…ÙŠØ©", "Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯"],
             "rows": [[row.crop_name, row.entries, row.qty, row.revenue] for row in sales_by_crop],
         },
         {
-            "title": "آخر المبيعات غير المدفوعة",
-            "headers": ["التاريخ", "الصنف", "المشتري", "القيمة", "الحالة"],
+            "title": "Ø¢Ø®Ø± Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª ØºÙŠØ± Ø§Ù„Ù…Ø¯ÙÙˆØ¹Ø©",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„ØµÙ†Ù", "Ø§Ù„Ù…Ø´ØªØ±ÙŠ", "Ø§Ù„Ù‚ÙŠÙ…Ø©", "Ø§Ù„Ø­Ø§Ù„Ø©"],
             "rows": [
                 [
                     row.sale_date,
@@ -1018,7 +1257,7 @@ def sales_detailed_report():
     ]
     export_response = _maybe_export(
         "sales_detailed_report",
-        "تقرير المبيعات التفصيلي",
+        "ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„ØªÙØµÙŠÙ„ÙŠ",
         export_sections,
         from_date,
         to_date,
@@ -1117,41 +1356,41 @@ def accounting_detailed_report():
 
     export_sections = [
         {
-            "title": "ملخص المحاسبة",
-            "headers": ["المؤشر", "القيمة"],
+            "title": "Ù…Ù„Ø®Øµ Ø§Ù„Ù…Ø­Ø§Ø³Ø¨Ø©",
+            "headers": ["Ø§Ù„Ù…Ø¤Ø´Ø±", "Ø§Ù„Ù‚ÙŠÙ…Ø©"],
             "rows": [
-                ["عدد المعاملات", len(transactions)],
-                ["عدد قيود الدخل", income_count],
-                ["عدد قيود المصروف", expense_count],
-                ["إجمالي الدخل", total_income],
-                ["إجمالي المصروف", total_expenses],
-                ["صافي الربح", net_profit],
+                ["Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ø¹Ø§Ù…Ù„Ø§Øª", len(transactions)],
+                ["Ø¹Ø¯Ø¯ Ù‚ÙŠÙˆØ¯ Ø§Ù„Ø¯Ø®Ù„", income_count],
+                ["Ø¹Ø¯Ø¯ Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…ØµØ±ÙˆÙ", expense_count],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø¯Ø®Ù„", total_income],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…ØµØ±ÙˆÙ", total_expenses],
+                ["ØµØ§ÙÙŠ Ø§Ù„Ø±Ø¨Ø­", net_profit],
             ],
         },
         {
-            "title": "المصروفات حسب المرجع",
-            "headers": ["المرجع", "عدد السجلات", "القيمة"],
+            "title": "Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø­Ø³Ø¨ Ø§Ù„Ù…Ø±Ø¬Ø¹",
+            "headers": ["Ø§Ù„Ù…Ø±Ø¬Ø¹", "Ø¹Ø¯Ø¯ Ø§Ù„Ø³Ø¬Ù„Ø§Øª", "Ø§Ù„Ù‚ÙŠÙ…Ø©"],
             "rows": [
-                [row.reference_type or "غير محدد", row.entries, row.amount]
+                [row.reference_type or "ØºÙŠØ± Ù…Ø­Ø¯Ø¯", row.entries, row.amount]
                 for row in expense_by_reference
             ],
         },
         {
-            "title": "المصروفات حسب الفئة",
-            "headers": ["الفئة", "عدد السجلات", "القيمة"],
+            "title": "Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø­Ø³Ø¨ Ø§Ù„ÙØ¦Ø©",
+            "headers": ["Ø§Ù„ÙØ¦Ø©", "Ø¹Ø¯Ø¯ Ø§Ù„Ø³Ø¬Ù„Ø§Øª", "Ø§Ù„Ù‚ÙŠÙ…Ø©"],
             "rows": [[row.name, row.entries, row.amount] for row in expense_by_category],
         },
         {
-            "title": "ملخص شهري",
-            "headers": ["الشهر", "الدخل", "المصروف", "الصافي"],
+            "title": "Ù…Ù„Ø®Øµ Ø´Ù‡Ø±ÙŠ",
+            "headers": ["Ø§Ù„Ø´Ù‡Ø±", "Ø§Ù„Ø¯Ø®Ù„", "Ø§Ù„Ù…ØµØ±ÙˆÙ", "Ø§Ù„ØµØ§ÙÙŠ"],
             "rows": [
                 [row.month, row.income or 0, row.expense or 0, (row.income or 0) - (row.expense or 0)]
                 for row in monthly_summary
             ],
         },
         {
-            "title": "آخر المعاملات",
-            "headers": ["التاريخ", "النوع", "الوصف", "الفئة", "القيمة", "المرجع"],
+            "title": "Ø¢Ø®Ø± Ø§Ù„Ù…Ø¹Ø§Ù…Ù„Ø§Øª",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„Ù†ÙˆØ¹", "Ø§Ù„ÙˆØµÙ", "Ø§Ù„ÙØ¦Ø©", "Ø§Ù„Ù‚ÙŠÙ…Ø©", "Ø§Ù„Ù…Ø±Ø¬Ø¹"],
             "rows": [
                 [
                     transaction.transaction_date,
@@ -1167,7 +1406,7 @@ def accounting_detailed_report():
     ]
     export_response = _maybe_export(
         "accounting_detailed_report",
-        "تقرير المحاسبة التفصيلي",
+        "ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ù…Ø­Ø§Ø³Ø¨Ø© Ø§Ù„ØªÙØµÙŠÙ„ÙŠ",
         export_sections,
         from_date,
         to_date,
@@ -1254,39 +1493,39 @@ def motors_detailed_report():
 
     export_sections = [
         {
-            "title": "ملخص المحركات",
-            "headers": ["المؤشر", "القيمة"],
+            "title": "Ù…Ù„Ø®Øµ Ø§Ù„Ù…Ø­Ø±ÙƒØ§Øª",
+            "headers": ["Ø§Ù„Ù…Ø¤Ø´Ø±", "Ø§Ù„Ù‚ÙŠÙ…Ø©"],
             "rows": [
-                ["إجمالي المحركات", len(motors)],
-                ["محركات نشطة", active_motors],
-                ["محركات معطلة", inactive_motors],
-                ["سجلات التشغيل (ضمن الفلترة)", usage_count],
-                ["إجمالي ساعات التشغيل", total_usage_hours],
-                ["إجمالي الوقود المضاف", total_fuel_added],
-                ["إجمالي تكلفة الوقود", total_fuel_cost],
-                ["عدد سجلات التكاليف (ضمن الفلترة)", cost_entries_count],
-                ["إجمالي تكاليف المحركات", total_motor_cost],
-                ["ساعات حصص مخصصة", allocated_quota_hours],
-                ["ساعات حصص مستخدمة", used_quota_hours],
-                ["ساعات حصص متبقية", remaining_quota_hours],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…Ø­Ø±ÙƒØ§Øª", len(motors)],
+                ["Ù…Ø­Ø±ÙƒØ§Øª Ù†Ø´Ø·Ø©", active_motors],
+                ["Ù…Ø­Ø±ÙƒØ§Øª Ù…Ø¹Ø·Ù„Ø©", inactive_motors],
+                ["Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", usage_count],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø³Ø§Ø¹Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„", total_usage_hours],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ÙˆÙ‚ÙˆØ¯ Ø§Ù„Ù…Ø¶Ø§Ù", total_fuel_added],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ ØªÙƒÙ„ÙØ© Ø§Ù„ÙˆÙ‚ÙˆØ¯", total_fuel_cost],
+                ["Ø¹Ø¯Ø¯ Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØªÙƒØ§Ù„ÙŠÙ (Ø¶Ù…Ù† Ø§Ù„ÙÙ„ØªØ±Ø©)", cost_entries_count],
+                ["Ø¥Ø¬Ù…Ø§Ù„ÙŠ ØªÙƒØ§Ù„ÙŠÙ Ø§Ù„Ù…Ø­Ø±ÙƒØ§Øª", total_motor_cost],
+                ["Ø³Ø§Ø¹Ø§Øª Ø­ØµØµ Ù…Ø®ØµØµØ©", allocated_quota_hours],
+                ["Ø³Ø§Ø¹Ø§Øª Ø­ØµØµ Ù…Ø³ØªØ®Ø¯Ù…Ø©", used_quota_hours],
+                ["Ø³Ø§Ø¹Ø§Øª Ø­ØµØµ Ù…ØªØ¨Ù‚ÙŠØ©", remaining_quota_hours],
             ],
         },
         {
-            "title": "أفضل المحركات حسب ساعات التشغيل",
-            "headers": ["المحرك", "الساعات", "عدد السجلات"],
+            "title": "Ø£ÙØ¶Ù„ Ø§Ù„Ù…Ø­Ø±ÙƒØ§Øª Ø­Ø³Ø¨ Ø³Ø§Ø¹Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„",
+            "headers": ["Ø§Ù„Ù…Ø­Ø±Ùƒ", "Ø§Ù„Ø³Ø§Ø¹Ø§Øª", "Ø¹Ø¯Ø¯ Ø§Ù„Ø³Ø¬Ù„Ø§Øª"],
             "rows": [[row.motor_name, row.hours, row.entries] for row in top_motors_by_hours],
         },
         {
-            "title": "أفضل المشغلين حسب الساعات",
-            "headers": ["المشغل", "الساعات", "عدد السجلات", "تكلفة الوقود"],
+            "title": "Ø£ÙØ¶Ù„ Ø§Ù„Ù…Ø´ØºÙ„ÙŠÙ† Ø­Ø³Ø¨ Ø§Ù„Ø³Ø§Ø¹Ø§Øª",
+            "headers": ["Ø§Ù„Ù…Ø´ØºÙ„", "Ø§Ù„Ø³Ø§Ø¹Ø§Øª", "Ø¹Ø¯Ø¯ Ø§Ù„Ø³Ø¬Ù„Ø§Øª", "ØªÙƒÙ„ÙØ© Ø§Ù„ÙˆÙ‚ÙˆØ¯"],
             "rows": [
                 [row.operator_name, row.hours, row.entries, row.fuel_cost]
                 for row in top_operators_by_hours
             ],
         },
         {
-            "title": "حصص المشغلين",
-            "headers": ["المشغل", "السنة", "المخصص", "المستخدم", "المتبقي", "الحالة"],
+            "title": "Ø­ØµØµ Ø§Ù„Ù…Ø´ØºÙ„ÙŠÙ†",
+            "headers": ["Ø§Ù„Ù…Ø´ØºÙ„", "Ø§Ù„Ø³Ù†Ø©", "Ø§Ù„Ù…Ø®ØµØµ", "Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…", "Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ", "Ø§Ù„Ø­Ø§Ù„Ø©"],
             "rows": [
                 [
                     quota.operator_name,
@@ -1300,16 +1539,16 @@ def motors_detailed_report():
             ],
         },
         {
-            "title": "آخر سجلات التشغيل",
-            "headers": ["التاريخ", "المحرك", "المشغل", "الساعات"],
+            "title": "Ø¢Ø®Ø± Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„Ù…Ø­Ø±Ùƒ", "Ø§Ù„Ù…Ø´ØºÙ„", "Ø§Ù„Ø³Ø§Ø¹Ø§Øª"],
             "rows": [
                 [usage.usage_date, usage.motor.name, usage.operator_name, usage.total_hours or 0]
                 for usage in recent_usage
             ],
         },
         {
-            "title": "آخر تكاليف المحركات",
-            "headers": ["التاريخ", "المحرك", "النوع", "الكمية", "التكلفة"],
+            "title": "Ø¢Ø®Ø± ØªÙƒØ§Ù„ÙŠÙ Ø§Ù„Ù…Ø­Ø±ÙƒØ§Øª",
+            "headers": ["Ø§Ù„ØªØ§Ø±ÙŠØ®", "Ø§Ù„Ù…Ø­Ø±Ùƒ", "Ø§Ù„Ù†ÙˆØ¹", "Ø§Ù„ÙƒÙ…ÙŠØ©", "Ø§Ù„ØªÙƒÙ„ÙØ©"],
             "rows": [
                 [
                     cost.cost_date,
@@ -1324,7 +1563,7 @@ def motors_detailed_report():
     ]
     export_response = _maybe_export(
         "motors_detailed_report",
-        "تقرير المحركات التفصيلي",
+        "ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ù…Ø­Ø±ÙƒØ§Øª Ø§Ù„ØªÙØµÙŠÙ„ÙŠ",
         export_sections,
         from_date,
         to_date,
@@ -1540,7 +1779,11 @@ def worker_report(worker_id):
                 [
                     row["transaction_date"],
                     row["description"],
-                    "سلفة" if row["kind"] == "loan" else "دفعة على الحساب" if row["kind"] == "advance" else "قيد مرتبط بالعامل",
+                    "سلفة"
+                    if row["kind"] == "loan"
+                    else "دفعة على الحساب"
+                    if row["kind"] == "advance"
+                    else "قيد مرتبط بالعامل",
                     row["amount"],
                     row["notes"],
                 ]
@@ -1656,3 +1899,4 @@ def monthly_report():
 def db_value(aggregate_expression, model):
     """Return numeric aggregate value with 0 fallback."""
     return model.query.with_entities(func.coalesce(aggregate_expression, 0)).scalar() or 0
+

@@ -7,11 +7,25 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
     <style>
         body {
             background-color: #f5f5f5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.65;
             scrollbar-gutter: stable;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700;
+        }
+
+        .btn,
+        .form-control,
+        .form-select,
+        .dropdown-menu,
+        .table {
+            font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         .navbar {
@@ -28,8 +42,11 @@
         .sidebar {
             background-color: #fff;
             min-height: calc(100vh - 60px);
-            padding: 20px;
             box-shadow: 2px 0 4px rgba(0,0,0,.05);
+        }
+
+        .sidebar-content {
+            padding: 20px;
         }
         
         .main-content {
@@ -120,18 +137,20 @@
         }
         
         @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: 0;
-                top: 60px;
-                width: 250px;
-                transform: translateX(-100%);
-                transition: transform 0.3s;
-                z-index: 1000;
+            .main-content {
+                padding: 16px 10px;
             }
-            
-            .sidebar.active {
-                transform: translateX(0);
+
+            .sidebar-content {
+                padding: 16px;
+            }
+
+            .offcanvas-md.sidebar {
+                max-width: 85vw;
+            }
+
+            .table {
+                white-space: nowrap;
             }
         }
     </style>
@@ -141,6 +160,11 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
+            {% if current_user.is_authenticated %}
+            <button class="btn btn-outline-light d-md-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="فتح القائمة">
+                <i class="bi bi-list"></i>
+            </button>
+            {% endif %}
             <a class="navbar-brand" href="/">
                 <i class="bi bi-leaf"></i> {{ site_name }}
             </a>
@@ -181,8 +205,13 @@
         <div class="row">
             <!-- Sidebar -->
             {% if current_user.is_authenticated %}
-            <nav class="col-md-2 d-md-block sidebar">
-                <div class="position-sticky">
+            <nav class="col-md-2 sidebar offcanvas-md offcanvas-start" tabindex="-1" id="appSidebar" aria-labelledby="appSidebarLabel">
+                <div class="offcanvas-header d-md-none border-bottom">
+                    <h5 class="offcanvas-title" id="appSidebarLabel">القائمة الرئيسية</h5>
+                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="إغلاق"></button>
+                </div>
+                <div class="offcanvas-body p-0">
+                <div class="position-sticky sidebar-content">
                     <h5 class="mb-3">القائمة الرئيسية</h5>
                     <a href="{{ url_for('home.dashboard') }}" class="{% if request.endpoint == 'home.dashboard' %}active{% endif %}">
                         <i class="bi bi-speedometer2"></i> لوحة التحكم
@@ -261,10 +290,11 @@
                     </a>
                     {% endif %}
                 </div>
+                </div>
             </nav>
 
             <!-- Main Content -->
-            <main class="col-md-10 ms-sm-auto px-md-4 main-content">
+            <main class="col-12 col-md-10 ms-sm-auto px-2 px-md-4 main-content">
             {% else %}
             <main class="container main-content">
             {% endif %}
@@ -297,6 +327,23 @@
                     const bsAlert = new bootstrap.Alert(alert);
                     bsAlert.close();
                 }, 3000); // 3 ثوانٍ
+            });
+
+            // ضمان قابلية تمرير الجداول أفقياً على الهاتف تلقائياً
+            const tables = document.querySelectorAll('table.table');
+            tables.forEach(function(table) {
+                if (table.classList.contains('no-auto-responsive')) {
+                    return;
+                }
+
+                if (table.closest('.table-responsive')) {
+                    return;
+                }
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'table-responsive';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
             });
         });
     </script>

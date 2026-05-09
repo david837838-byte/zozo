@@ -53,7 +53,7 @@ def _should_track(instance):
 
     # Skip very noisy session tables if ever added.
     table_name = getattr(instance, "__tablename__", "")
-    if table_name in {"alembic_version"}:
+    if table_name in {"alembic_version", "user_sessions"}:
         return False
     return True
 

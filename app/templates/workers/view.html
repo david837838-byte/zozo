@@ -40,6 +40,9 @@
                 <p><strong>الهاتف:</strong> {{ worker.phone or 'غير مسجل' }}</p>
                 <p><strong>البريد:</strong> {{ worker.email or 'غير مسجل' }}</p>
                 <p><strong>موقع العمل:</strong> {{ worker.work_location or 'غير محدد' }}</p>
+                <p><strong>العائلة:</strong> {{ worker.family.family_name if worker.family else 'غير مرتبط' }}</p>
+                <p><strong>الجنس:</strong> {{ worker.gender or 'غير محدد' }}</p>
+                <p><strong>التسعير:</strong> {% if worker.use_family_rates %}تسعير العائلة{% else %}تسعير خاص للعامل{% endif %}</p>
                 <p><strong>الحالة:</strong> {% if worker.is_active %}<span class="badge bg-success">نشط</span>{% else %}<span class="badge bg-danger">معطل</span>{% endif %}</p>
             </div>
         </div>

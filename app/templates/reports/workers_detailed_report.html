@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}تقرير العمال التفصيلي{% endblock %}
 
@@ -8,24 +8,103 @@
     <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm">العودة للتقارير</a>
 </div>
 
-{% include "reports/_report_filters_exports.html" %}
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="from_date" class="form-label mb-1">من تاريخ</label>
+                <input type="date" id="from_date" name="from_date" class="form-control form-control-sm" value="{{ from_date or '' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="to_date" class="form-label mb-1">إلى تاريخ</label>
+                <input type="date" id="to_date" name="to_date" class="form-control form-control-sm" value="{{ to_date or '' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="worker_id" class="form-label mb-1">العامل</label>
+                <select id="worker_id" name="worker_id" class="form-select form-select-sm">
+                    <option value="">كل العمال</option>
+                    {% for worker in workers %}
+                    <option value="{{ worker.id }}" {% if selected_worker_id == worker.id %}selected{% endif %}>{{ worker.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">تطبيق الفلاتر</button>
+                <a href="{{ url_for('reports.workers_detailed_report') }}" class="btn btn-outline-secondary btn-sm">إعادة ضبط</a>
+                <a href="{{ url_for('reports.workers_detailed_report', from_date=from_date or None, to_date=to_date or None, worker_id=selected_worker_id or None, export='excel') }}" class="btn btn-success btn-sm">Excel</a>
+                <a href="{{ url_for('reports.workers_detailed_report', from_date=from_date or None, to_date=to_date or None, worker_id=selected_worker_id or None, export='pdf') }}" class="btn btn-danger btn-sm">PDF</a>
+            </div>
+        </form>
+        <small class="text-muted d-block mt-2">الفترة الحالية: {{ date_range_label or 'كل الفترات' }}</small>
+        <small class="text-muted d-block">النطاق: {% if selected_worker %}العامل {{ selected_worker.name }}{% else %}كل العمال{% endif %}</small>
+    </div>
+</div>
 
 <div class="row mb-4">
-    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي العمال</small><h5>{{ workers|length }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>عدد العمال</small><h5>{{ filtered_workers|length }}</h5></div></div></div>
     <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>النشطون</small><h5 class="text-success">{{ active_workers }}</h5></div></div></div>
-    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>المعطلون</small><h5 class="text-danger">{{ inactive_workers }}</h5></div></div></div>
-    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>شهري</small><h5>{{ monthly_workers }}</h5></div></div></div>
-    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>بالساعة</small><h5>{{ hourly_workers }}</h5></div></div></div>
-    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>سجلات حضور</small><h5>{{ attendance_count }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي الساعات</small><h5>{{ "%.2f"|format(total_work_hours) }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي الرواتب</small><h5>{{ "%.2f"|format(total_calculated_salaries) }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي السلف</small><h5 class="text-warning">{{ "%.2f"|format(total_worker_loans) }}</h5></div></div></div>
+    <div class="col-md-2 col-6 mb-2"><div class="card"><div class="card-body text-center"><small>إجمالي المتبقي</small><h5 class="{% if total_remaining_balances >= 0 %}text-success{% else %}text-danger{% endif %}">{{ "%.2f"|format(total_remaining_balances) }}</h5></div></div></div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">تفاصيل كل عامل (ساعات + راتب + سلف + متبقي)</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>العامل</th>
+                    <th>النوع</th>
+                    <th>إجمالي الساعات</th>
+                    <th>أيام العمل</th>
+                    <th>عدد السجلات</th>
+                    <th>الراتب المحسوب</th>
+                    <th>السلف</th>
+                    <th>دفعات الحساب</th>
+                    <th>إجمالي الحسومات</th>
+                    <th>المتبقي</th>
+                    <th>تقرير العامل</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in worker_financial_rows %}
+                <tr>
+                    <td>{{ row.worker_name }}</td>
+                    <td>{{ row.worker_type }}</td>
+                    <td>{{ "%.2f"|format(row.total_hours) }}</td>
+                    <td>{{ row.worked_days }}</td>
+                    <td>{{ row.entries }}</td>
+                    <td>{{ "%.2f"|format(row.salary) }}</td>
+                    <td class="text-warning">{{ "%.2f"|format(row.loans) }}</td>
+                    <td class="text-info">{{ "%.2f"|format(row.advances) }}</td>
+                    <td>{{ "%.2f"|format(row.total_payments) }}</td>
+                    <td class="{% if row.remaining_salary >= 0 %}text-success{% else %}text-danger{% endif %}">{{ "%.2f"|format(row.remaining_salary) }}</td>
+                    <td>
+                        <a href="{{ url_for('reports.worker_report', worker_id=row.worker_id, from_date=from_date or None, to_date=to_date or None) }}" class="btn btn-outline-primary btn-sm">فتح</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="11" class="text-center text-muted">لا توجد بيانات للعرض ضمن الفلاتر المحددة.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
         <div class="card h-100">
-            <div class="card-header">مؤشرات الساعات</div>
+            <div class="card-header">مؤشرات إضافية</div>
             <div class="card-body">
-                <p class="mb-1"><strong>إجمالي ساعات العمل:</strong> {{ "%.2f"|format(total_work_hours) }}</p>
-                <p class="mb-0"><strong>إجمالي ساعات المحركات:</strong> {{ "%.2f"|format(total_motor_hours) }}</p>
+                <p class="mb-1"><strong>العمال المعطلون في النطاق:</strong> {{ inactive_workers }}</p>
+                <p class="mb-1"><strong>عمال شهري:</strong> {{ monthly_workers }}</p>
+                <p class="mb-1"><strong>عمال بالساعة:</strong> {{ hourly_workers }}</p>
+                <p class="mb-1"><strong>سجلات الحضور:</strong> {{ attendance_count }}</p>
+                <p class="mb-1"><strong>إجمالي ساعات المحركات:</strong> {{ "%.2f"|format(total_motor_hours) }}</p>
+                <p class="mb-1"><strong>إجمالي دفعات الحساب:</strong> {{ "%.2f"|format(total_worker_advances) }}</p>
+                <p class="mb-0"><strong>إجمالي الحسومات:</strong> {{ "%.2f"|format(total_worker_payments) }}</p>
             </div>
         </div>
     </div>

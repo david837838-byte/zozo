@@ -2,7 +2,7 @@ import os
 import shutil
 from datetime import datetime, timedelta
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, session, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -11,7 +11,9 @@ from app.models.user import User
 from app.models.box import BoxType, BoxUsage
 from app.models.app_setting import AppSetting
 from app.models.audit_log import AuditLog
+from app.models.user_session import UserSession
 from app.security import get_submitted_csrf_token, validate_csrf_token
+from app.session_tracker import SESSION_TOKEN_KEY
 
 bp = Blueprint('settings', __name__, url_prefix='/settings')
 
@@ -728,7 +730,94 @@ def delete_box(box_id):
 @login_required
 def profile():
     """صفحة الملف الشخصي"""
-    return render_template('settings/profile.html', user=current_user)
+    current_session_token = session.get(SESSION_TOKEN_KEY)
+    sessions = (
+        UserSession.query.filter(UserSession.user_id == current_user.id)
+        .order_by(
+            UserSession.is_active.desc(),
+            UserSession.last_seen_at.desc(),
+            UserSession.login_at.desc(),
+        )
+        .limit(30)
+        .all()
+    )
+    return render_template(
+        'settings/profile.html',
+        user=current_user,
+        sessions=sessions,
+        current_session_token=current_session_token,
+    )
+
+@bp.route('/profile/sessions/<int:session_id>/logout', methods=['POST'])
+@login_required
+def logout_profile_session(session_id):
+    """Log out one of the user's tracked sessions/devices."""
+    submitted_token = get_submitted_csrf_token()
+    if not validate_csrf_token(submitted_token):
+        flash('رمز الأمان غير صالح، يرجى المحاولة مرة أخرى', 'danger')
+        return redirect(url_for('settings.profile'))
+
+    target_session = (
+        UserSession.query.filter(
+            UserSession.id == session_id,
+            UserSession.user_id == current_user.id,
+        ).first_or_404()
+    )
+
+    current_session_token = session.get(SESSION_TOKEN_KEY)
+    if target_session.session_token == current_session_token:
+        flash('هذا هو جهازك الحالي، استخدم تسجيل الخروج العادي إذا أردت إنهاء الجلسة', 'warning')
+        return redirect(url_for('settings.profile'))
+
+    if not target_session.is_active:
+        flash('هذه الجلسة منتهية مسبقاً', 'info')
+        return redirect(url_for('settings.profile'))
+
+    now = datetime.utcnow()
+    target_session.is_active = False
+    target_session.logged_out_at = now
+    target_session.last_seen_at = now
+    db.session.commit()
+    flash('تم تسجيل خروج الجهاز المحدد بنجاح', 'success')
+    return redirect(url_for('settings.profile'))
+
+
+@bp.route('/profile/sessions/logout-others', methods=['POST'])
+@login_required
+def logout_other_profile_sessions():
+    """Log out all active sessions except the current one."""
+    submitted_token = get_submitted_csrf_token()
+    if not validate_csrf_token(submitted_token):
+        flash('رمز الأمان غير صالح، يرجى المحاولة مرة أخرى', 'danger')
+        return redirect(url_for('settings.profile'))
+
+    current_session_token = session.get(SESSION_TOKEN_KEY)
+    now = datetime.utcnow()
+
+    query = UserSession.query.filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_active.is_(True),
+    )
+    if current_session_token:
+        query = query.filter(UserSession.session_token != current_session_token)
+
+    affected_rows = query.update(
+        {
+            UserSession.is_active: False,
+            UserSession.logged_out_at: now,
+            UserSession.last_seen_at: now,
+        },
+        synchronize_session=False,
+    )
+    db.session.commit()
+
+    if affected_rows:
+        flash(f'تم تسجيل خروج {affected_rows} جلسة أخرى بنجاح', 'success')
+    else:
+        flash('لا توجد جلسات أخرى نشطة حالياً', 'info')
+
+    return redirect(url_for('settings.profile'))
+
 
 @bp.route('/profile/edit', methods=['GET', 'POST'])
 @login_required

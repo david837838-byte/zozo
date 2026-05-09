@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إيصال دفعات جماعية - {{ family.family_name }}</title>
+    <style>
+        @page { size: A6; margin: 10mm; }
+        body { font-family: Tahoma, Arial, sans-serif; margin: 0; background: #f7f7f7; }
+        .receipt { max-width: 420px; margin: 16px auto; background: #fff; border: 1px solid #ddd; padding: 12px; }
+        .title { text-align: center; font-weight: 700; margin-bottom: 8px; }
+        .row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ddd; padding: 4px 0; font-size: 13px; }
+        .section { margin-top: 10px; }
+        .section h4 { margin: 0 0 6px 0; font-size: 13px; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+        .table th, .table td { border: 1px solid #ddd; padding: 4px; text-align: right; }
+        .toolbar { text-align: center; margin: 10px auto; }
+        .toolbar button { border: 0; padding: 6px 12px; margin: 0 4px; border-radius: 6px; cursor: pointer; }
+        .print { background: #0d6efd; color: #fff; }
+        .close { background: #6c757d; color: #fff; }
+        @media print { .toolbar { display: none; } body { background: #fff; } .receipt { margin: 0; border: none; } }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="title">إيصال دفعات جماعية</div>
+        <div class="row"><span>رقم الإيصال</span><strong>{{ receipt_number }}</strong></div>
+        <div class="row"><span>العائلة</span><strong>{{ family.family_name }}</strong></div>
+        <div class="row"><span>تاريخ المجموعة</span><strong>{{ receipt_date.strftime('%Y-%m-%d') }}</strong></div>
+        <div class="row"><span>نوع الدفعة</span><strong>{{ 'دفعة على الحساب' if payment_kind == 'advance' else ('سلفة' if payment_kind == 'loan' else 'الكل') }}</strong></div>
+
+        <div class="section">
+            <h4>عدد المستفيدين</h4>
+            <div class="row"><span>الشباب</span><strong>{{ male_count }}</strong></div>
+            <div class="row"><span>البنات</span><strong>{{ female_count }}</strong></div>
+            <div class="row"><span>غير محدد</span><strong>{{ unknown_count }}</strong></div>
+            <div class="row"><span>عدد العمال</span><strong>{{ workers_count }}</strong></div>
+            <div class="row"><span>عدد القيود</span><strong>{{ transactions_count }}</strong></div>
+        </div>
+
+        <div class="section">
+            <h4>الإجماليات</h4>
+            <div class="row"><span>السلف</span><strong>{{ "%.2f"|format(loans_total or 0) }}</strong></div>
+            <div class="row"><span>دفعات على الحساب</span><strong>{{ "%.2f"|format(advances_total or 0) }}</strong></div>
+            <div class="row"><span>الإجمالي</span><strong>{{ "%.2f"|format(total_amount or 0) }}</strong></div>
+        </div>
+
+        <div class="section">
+            <h4>تفاصيل مختصرة</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>العامل</th>
+                        <th>النوع</th>
+                        <th>المبلغ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in transaction_rows %}
+                    <tr>
+                        <td>{{ row.worker_name }}</td>
+                        <td>{{ row.kind_label }}</td>
+                        <td>{{ "%.2f"|format(row.transaction.amount or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align:center;">لا توجد قيود</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="row"><span>وقت الطباعة</span><strong>{{ printed_at.strftime('%Y-%m-%d %H:%M') }}</strong></div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="print" onclick="window.print()">طباعة</button>
+        <button class="close" onclick="window.close()">إغلاق</button>
+    </div>
+</body>
+</html>

@@ -10,6 +10,7 @@ from app.models.account import Account
 _TENANT_INIT_DONE = False
 _TENANT_TABLES = (
     "user",
+    "worker_family",
     "worker",
     "shift",
     "work_log",
@@ -40,10 +41,16 @@ _TENANT_TABLES = (
     "motor_usages",
     "motor_costs",
     "audit_logs",
+    "user_sessions",
     "ai_conversation",
     "ai_conversation_message",
 )
 _EXTRA_SCHEMA_COLUMNS = {
+    "worker": {
+        "family_id": "INTEGER",
+        "gender": "VARCHAR(20)",
+        "use_family_rates": "BOOLEAN DEFAULT 0",
+    },
     "user": {
         "is_super_admin": "BOOLEAN DEFAULT 0",
         "can_use_ai_assistant": "BOOLEAN DEFAULT 0",

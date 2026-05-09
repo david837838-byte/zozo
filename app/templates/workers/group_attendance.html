@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}الحضور الجماعي{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>الحضور الجماعي</h2>
+            <p class="text-muted mb-0">تسجيل حضور كل أفراد العائلة مرة واحدة.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if selected_family %}
+            <a href="{{ url_for('workers.group_attendance_receipt', family_id=selected_family.id, date=selected_date.strftime('%Y-%m-%d')) }}"
+               class="btn btn-info" target="_blank">
+                <i class="fas fa-receipt"></i> إيصال جماعي
+            </a>
+            {% endif %}
+            <a href="{{ url_for('workers.group_payments') }}" class="btn btn-warning">
+                <i class="fas fa-money-bill-wave"></i> الدفعات الجماعية
+            </a>
+            <a href="{{ url_for('workers.group_section') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقسم الجماعي
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="family_id" class="form-label">العائلة</label>
+                    <select name="family_id" id="family_id" class="form-select" required>
+                        <option value="">-- اختر العائلة --</option>
+                        {% for family in families %}
+                            <option value="{{ family.id }}" {% if selected_family and selected_family.id == family.id %}selected{% endif %}>
+                                {{ family.family_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="date" class="form-label">التاريخ</label>
+                    <input type="date" class="form-control" id="date" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="male_hours" class="form-label">ساعات الشباب</label>
+                    <input type="number" step="0.25" min="0" class="form-control" id="male_hours" name="male_hours" value="{{ male_default_hours }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="female_hours" class="form-label">ساعات البنات</label>
+                    <input type="number" step="0.25" min="0" class="form-control" id="female_hours" name="female_hours" value="{{ female_default_hours }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> عرض
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_family %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">عائلة {{ selected_family.family_name }} - {{ selected_date.strftime('%Y-%m-%d') }}</h5>
+                <small class="text-muted">حفظ مباشر (جديد أو تحديث)</small>
+            </div>
+            <div class="card-body p-0">
+                {% if family_workers %}
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="family_id" value="{{ selected_family.id }}">
+                        <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                        <input type="hidden" name="male_hours" value="{{ male_default_hours }}">
+                        <input type="hidden" name="female_hours" value="{{ female_default_hours }}">
+
+                        <div class="p-3 border-bottom">
+                            <label for="notes" class="form-label mb-1">ملاحظة عامة (اختياري)</label>
+                            <input type="text" class="form-control" id="notes" name="notes" placeholder="تطبّق تلقائيًا عندما لا توجد ملاحظة فردية">
+                            <small class="text-muted d-block mt-2">يمكنك تحديد جنس العامل من الجدول، وسيتم حفظه تلقائيًا عند الحفظ.</small>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>
+                                            <input type="checkbox" id="check_all" checked>
+                                        </th>
+                                        <th>اسم العامل</th>
+                                        <th>الجنس الحالي</th>
+                                        <th>تعيين الجنس</th>
+                                        <th>الحالة</th>
+                                        <th>الساعات</th>
+                                        <th>ملاحظة فردية</th>
+                                        <th>سجل سابق</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for worker in family_workers %}
+                                        {% set existing = existing_attendances.get(worker.id) %}
+                                        <tr>
+                                            <td>
+                                                <input type="checkbox" class="worker-check" name="include_{{ worker.id }}" checked>
+                                            </td>
+                                            <td><strong>{{ worker.name }}</strong></td>
+                                            <td>
+                                                {% if worker.id in female_worker_ids %}
+                                                    <span class="badge bg-info">بنت</span>
+                                                {% elif worker.id in male_worker_ids %}
+                                                    <span class="badge bg-primary">شاب</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">غير محدد</span>
+                                                {% endif %}
+                                            </td>
+                                            <td style="min-width: 130px;">
+                                                <select class="form-select form-select-sm" name="gender_{{ worker.id }}">
+                                                    <option value="" {% if worker.id not in female_worker_ids and worker.id not in male_worker_ids %}selected{% endif %}>--</option>
+                                                    <option value="ذكر" {% if worker.id in male_worker_ids %}selected{% endif %}>شاب</option>
+                                                    <option value="أنثى" {% if worker.id in female_worker_ids %}selected{% endif %}>بنت</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select form-select-sm" name="status_{{ worker.id }}">
+                                                    {% for status in status_choices %}
+                                                        <option value="{{ status }}" {% if (existing and existing.status == status) or ((not existing) and status == 'حاضر') %}selected{% endif %}>
+                                                            {{ status }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td style="min-width: 110px;">
+                                                <input
+                                                    type="number"
+                                                    step="0.25"
+                                                    min="0"
+                                                    class="form-control form-control-sm"
+                                                    name="hours_{{ worker.id }}"
+                                                    value="{% if existing %}{{ existing.hours_worked }}{% elif worker.id in female_worker_ids %}{{ female_default_hours }}{% else %}{{ male_default_hours }}{% endif %}"
+                                                >
+                                            </td>
+                                            <td style="min-width: 180px;">
+                                                <input
+                                                    type="text"
+                                                    class="form-control form-control-sm"
+                                                    name="notes_{{ worker.id }}"
+                                                    value="{{ existing.notes if existing else '' }}"
+                                                    placeholder="اختياري"
+                                                >
+                                            </td>
+                                            <td>
+                                                {% if existing %}
+                                                    <span class="badge bg-warning text-dark">موجود</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">جديد</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="p-3 border-top">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> حفظ الحضور الجماعي
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="p-4 text-center text-muted">
+                        لا يوجد عمال نشطون داخل هذه العائلة.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    const checkAll = document.getElementById('check_all');
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            document.querySelectorAll('.worker-check').forEach((checkbox) => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+</script>
+{% endblock %}

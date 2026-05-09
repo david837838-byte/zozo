@@ -1,20 +1,47 @@
 from app import db
 from datetime import datetime
 
+class WorkerFamily(db.Model):
+    """نموذج عائلة العمال"""
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
+    family_name = db.Column(db.String(120), nullable=False)
+    contact_name = db.Column(db.String(120), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+
+    # تسعير افتراضي للعائلة
+    male_hourly_rate = db.Column(db.Float, default=0.0)
+    female_hourly_rate = db.Column(db.Float, default=0.0)
+    male_monthly_salary = db.Column(db.Float, default=0.0)
+    female_monthly_salary = db.Column(db.Float, default=0.0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<WorkerFamily {self.family_name}>'
+
+
 class Worker(db.Model):
     """نموذج العامل"""
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
+    family_id = db.Column(db.Integer, db.ForeignKey('worker_family.id'), nullable=True, index=True)
     name = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(20), nullable=True)
     email = db.Column(db.String(120), nullable=True)
+    gender = db.Column(db.String(20), nullable=True)  # ذكر أو أنثى
     is_monthly = db.Column(db.Boolean, default=False)  # عامل شهري
+    use_family_rates = db.Column(db.Boolean, default=False)  # استخدام تسعير العائلة
     work_location = db.Column(db.String(50), nullable=True)  # جبل أو سهل
     hourly_rate = db.Column(db.Float, default=0.0)  # السعر بالساعة
     monthly_salary = db.Column(db.Float, default=0.0)  # الراتب الشهري
     is_active = db.Column(db.Boolean, default=True)
     
     # Relations
+    family = db.relationship('WorkerFamily', backref=db.backref('workers', lazy=True))
     shifts = db.relationship('Shift', backref='worker', lazy=True, cascade='all, delete-orphan')
     work_logs = db.relationship('WorkLog', backref='worker', lazy=True, cascade='all, delete-orphan')
     motor_logs = db.relationship('MotorLog', backref='worker', lazy=True, cascade='all, delete-orphan')

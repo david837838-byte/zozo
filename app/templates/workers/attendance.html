@@ -9,6 +9,9 @@
             <h2>الحضور والغياب</h2>
         </div>
         <div class="col-md-4 text-end">
+            <a href="{{ url_for('workers.group_attendance') }}" class="btn btn-success">
+                <i class="fas fa-users"></i> الحضور الجماعي
+            </a>
             <a href="{{ url_for('workers.monthly_attendance') }}" class="btn btn-info">
                 <i class="fas fa-calendar"></i> الحضور الشهري
             </a>

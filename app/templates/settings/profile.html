@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}ملفي الشخصي{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-lg-10">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">
@@ -13,14 +13,14 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-4">
+                    <div class="row g-3 mb-4">
                         <div class="col-md-3 text-center">
                             <div class="avatar-wrapper">
                                 <i class="fas fa-user-circle" style="font-size: 80px; color: #007bff;"></i>
                             </div>
                         </div>
                         <div class="col-md-9">
-                            <table class="table table-borderless">
+                            <table class="table table-borderless mb-0 no-auto-responsive">
                                 <tr>
                                     <th width="30%">اسم المستخدم:</th>
                                     <td>{{ user.username }}</td>
@@ -60,8 +60,7 @@
                             </table>
                         </div>
                     </div>
-                    
-                    <!-- الصلاحيات -->
+
                     {% if not user.is_admin and (user.can_manage_workers or user.can_manage_inventory or user.can_manage_production or user.can_manage_sales or user.can_manage_accounting or user.can_manage_reports or user.can_delete or user.can_edit) %}
                     <hr>
                     <h5 class="mb-3">
@@ -78,10 +77,89 @@
                         {% if user.can_edit %}<div class="col-md-6 mb-2"><span class="badge bg-warning">تعديل البيانات</span></div>{% endif %}
                     </div>
                     {% endif %}
-                    
-                    <!-- الأزرار -->
+
                     <hr>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <h5 class="mb-0"><i class="fas fa-laptop"></i> الأجهزة المسجلة</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-muted">آخر {{ sessions|length }} جلسة دخول</small>
+                            <form method="POST" action="{{ url_for('settings.logout_other_profile_sessions') }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">تسجيل الخروج من كل الأجهزة الأخرى</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {% if sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>نوع الجهاز</th>
+                                    <th>الجهاز / النظام / المتصفح</th>
+                                    <th>IP</th>
+                                    <th>تاريخ الدخول</th>
+                                    <th>آخر نشاط</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for device_session in sessions %}
+                                <tr>
+                                    <td>
+                                        {% if device_session.device_type == 'Phone' %}
+                                            <span class="badge bg-info">هاتف</span>
+                                        {% elif device_session.device_type == 'Tablet' %}
+                                            <span class="badge bg-primary">تابلت</span>
+                                        {% elif device_session.device_type == 'Desktop' %}
+                                            <span class="badge bg-secondary">كمبيوتر/لابتوب</span>
+                                        {% else %}
+                                            <span class="badge bg-dark">غير معروف</span>
+                                        {% endif %}
+                                        {% if device_session.session_token == current_session_token %}
+                                            <span class="badge bg-success mt-1">هذا الجهاز</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">{{ device_session.device_name }}</div>
+                                        <div class="small text-muted">{{ device_session.operating_system or '-' }} - {{ device_session.browser or '-' }}</div>
+                                    </td>
+                                    <td>{{ device_session.ip_address or '-' }}</td>
+                                    <td>{{ device_session.login_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                                    <td>
+                                        {% if device_session.last_seen_at %}
+                                            {{ device_session.last_seen_at.strftime('%d-%m-%Y %H:%M') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if device_session.is_active %}
+                                            <span class="badge bg-success">نشطة</span>
+                                            {% if device_session.session_token != current_session_token %}
+                                            <form method="POST" action="{{ url_for('settings.logout_profile_session', session_id=device_session.id) }}" class="mt-2">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">تسجيل خروج هذا الجهاز</button>
+                                            </form>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">منتهية</span>
+                                            {% if device_session.logged_out_at %}
+                                            <div class="small text-muted mt-1">{{ device_session.logged_out_at.strftime('%d-%m-%Y %H:%M') }}</div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">لا توجد جلسات مسجلة بعد.</div>
+                    {% endif %}
+
+                    <hr>
+                    <div class="d-flex flex-wrap gap-2">
                         <a href="{{ url_for('settings.edit_profile') }}" class="btn btn-primary">
                             <i class="fas fa-edit"></i> تعديل بيانات الملف الشخصي
                         </a>

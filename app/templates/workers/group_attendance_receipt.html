@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إيصال حضور جماعي - {{ family.family_name }}</title>
+    <style>
+        @page { size: A6; margin: 10mm; }
+        body { font-family: Tahoma, Arial, sans-serif; margin: 0; background: #f7f7f7; }
+        .receipt { max-width: 420px; margin: 16px auto; background: #fff; border: 1px solid #ddd; padding: 12px; }
+        .title { text-align: center; font-weight: 700; margin-bottom: 8px; }
+        .meta { font-size: 12px; color: #333; margin-bottom: 8px; }
+        .row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ddd; padding: 4px 0; font-size: 13px; }
+        .section { margin-top: 10px; }
+        .section h4 { margin: 0 0 6px 0; font-size: 13px; }
+        .toolbar { text-align: center; margin: 10px auto; }
+        .toolbar button { border: 0; padding: 6px 12px; margin: 0 4px; border-radius: 6px; cursor: pointer; }
+        .print { background: #0d6efd; color: #fff; }
+        .close { background: #6c757d; color: #fff; }
+        @media print { .toolbar { display: none; } body { background: #fff; } .receipt { margin: 0; border: none; } }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="title">إيصال حضور جماعي</div>
+        <div class="meta">
+            <div class="row"><span>رقم الإيصال</span><strong>{{ receipt_number }}</strong></div>
+            <div class="row"><span>العائلة</span><strong>{{ family.family_name }}</strong></div>
+            <div class="row"><span>التاريخ</span><strong>{{ receipt_date.strftime('%Y-%m-%d') }}</strong></div>
+            <div class="row"><span>عدد الشباب</span><strong>{{ male_count }}</strong></div>
+            <div class="row"><span>عدد البنات</span><strong>{{ female_count }}</strong></div>
+            <div class="row"><span>إجمالي الساعات</span><strong>{{ "%.2f"|format(total_hours or 0) }}</strong></div>
+            <div class="row"><span>دفعات اليوم فقط</span><strong>{{ "%.2f"|format(day_payment_total or 0) }}</strong></div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="print" onclick="window.print()">طباعة</button>
+        <button class="close" onclick="window.close()">إغلاق</button>
+    </div>
+</body>
+</html>

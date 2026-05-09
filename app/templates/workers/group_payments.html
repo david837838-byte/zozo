@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}الدفعات الجماعية{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>الدفعات الجماعية</h2>
+            <p class="text-muted mb-0">تسجيل سلفة/دفعة على الحساب لعائلة كاملة مع توزيع تلقائي على الأفراد.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if selected_family %}
+            <a href="{{ url_for('workers.group_payments_receipt', family_id=selected_family.id, date=selected_date.strftime('%Y-%m-%d'), payment_kind=payment_kind) }}"
+               class="btn btn-info" target="_blank">
+                <i class="fas fa-receipt"></i> إيصال دفعات
+            </a>
+            {% endif %}
+            <a href="{{ url_for('workers.group_attendance') }}" class="btn btn-success">
+                <i class="fas fa-clipboard-check"></i> الحضور الجماعي
+            </a>
+            <a href="{{ url_for('workers.group_section') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقسم الجماعي
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="family_id" class="form-label">العائلة</label>
+                    <select name="family_id" id="family_id" class="form-select" required>
+                        <option value="">-- اختر العائلة --</option>
+                        {% for family in families %}
+                            <option value="{{ family.id }}" {% if selected_family and selected_family.id == family.id %}selected{% endif %}>
+                                {{ family.family_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="date" class="form-label">التاريخ</label>
+                    <input type="date" class="form-control" id="date" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="payment_kind" class="form-label">نوع الدفعة</label>
+                    <select name="payment_kind" id="payment_kind" class="form-select">
+                        <option value="loan" {% if payment_kind == 'loan' %}selected{% endif %}>سلفة</option>
+                        <option value="advance" {% if payment_kind == 'advance' %}selected{% endif %}>دفعة على الحساب</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="distribution_method" class="form-label">طريقة التوزيع</label>
+                    <select name="distribution_method" id="distribution_method" class="form-select">
+                        <option value="equal" {% if distribution_method == 'equal' %}selected{% endif %}>بالتساوي</option>
+                        <option value="by_hours" {% if distribution_method == 'by_hours' %}selected{% endif %}>حسب ساعات اليوم</option>
+                        <option value="manual" {% if distribution_method == 'manual' %}selected{% endif %}>يدوي</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="total_amount" class="form-label">المبلغ الإجمالي</label>
+                    <input type="number" step="0.01" min="0" class="form-control" id="total_amount" name="total_amount" value="{{ total_amount }}">
+                </div>
+                <div class="col-md-5">
+                    <label for="description" class="form-label">البيان (اختياري)</label>
+                    <input type="text" class="form-control" id="description" name="description" value="{{ user_description or '' }}" placeholder="مثال: دفعة جماعية لهذا اليوم">
+                </div>
+                <div class="col-md-5">
+                    <label for="notes" class="form-label">ملاحظات (اختياري)</label>
+                    <input type="text" class="form-control" id="notes" name="notes" value="{{ user_notes or '' }}" placeholder="أي ملاحظة إضافية">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> تجهيز
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_family %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">عائلة {{ selected_family.family_name }} - {{ selected_date.strftime('%Y-%m-%d') }}</h5>
+                <small class="text-muted">سيتم إنشاء قيد مستقل لكل عامل</small>
+            </div>
+
+            {% if family_workers %}
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="family_id" value="{{ selected_family.id }}">
+                    <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+
+                    <div class="p-3 border-bottom">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="payment_kind_post" class="form-label">نوع الدفعة</label>
+                                <select name="payment_kind" id="payment_kind_post" class="form-select">
+                                    <option value="loan" {% if payment_kind == 'loan' %}selected{% endif %}>سلفة</option>
+                                    <option value="advance" {% if payment_kind == 'advance' %}selected{% endif %}>دفعة على الحساب</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="distribution_method_post" class="form-label">طريقة التوزيع</label>
+                                <select name="distribution_method" id="distribution_method_post" class="form-select">
+                                    <option value="equal" {% if distribution_method == 'equal' %}selected{% endif %}>بالتساوي</option>
+                                    <option value="by_hours" {% if distribution_method == 'by_hours' %}selected{% endif %}>حسب ساعات اليوم</option>
+                                    <option value="manual" {% if distribution_method == 'manual' %}selected{% endif %}>يدوي</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="total_amount_post" class="form-label">المبلغ الإجمالي</label>
+                                <input type="number" step="0.01" min="0" class="form-control" name="total_amount" id="total_amount_post" value="{{ total_amount }}">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-save"></i> حفظ الدفعات
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="description_post" class="form-label">البيان (اختياري)</label>
+                                <input type="text" class="form-control" name="description" id="description_post" value="{{ user_description or '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="notes_post" class="form-label">ملاحظات (اختياري)</label>
+                                <input type="text" class="form-control" name="notes" id="notes_post" value="{{ user_notes or '' }}">
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            في طريقة "يدوي" يتم أخذ المبالغ من الجدول مباشرة. في الطرق الأخرى التوزيع يتم تلقائيًا عند الحفظ.
+                        </small>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><input type="checkbox" id="check_all" checked></th>
+                                    <th>اسم العامل</th>
+                                    <th>الجنس</th>
+                                    <th>حالة اليوم</th>
+                                    <th>ساعات اليوم</th>
+                                    <th>المبلغ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for worker in family_workers %}
+                                    {% set attendance = attendance_map.get(worker.id) %}
+                                    {% set amount_value = preview_amounts.get(worker.id, 0) %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="worker-check" name="include_{{ worker.id }}" checked>
+                                        </td>
+                                        <td><strong>{{ worker.name }}</strong></td>
+                                        <td>
+                                            {% if worker.gender in ['أنثى', 'انثى', 'بنت'] %}
+                                                <span class="badge bg-info">بنت</span>
+                                            {% elif worker.gender in ['ذكر', 'شاب'] %}
+                                                <span class="badge bg-primary">شاب</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">غير محدد</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if attendance %}
+                                                {{ attendance.status }}
+                                            {% else %}
+                                                <span class="text-muted">لا يوجد</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if attendance %}
+                                                {{ "%.2f"|format(attendance.hours_worked or 0) }}
+                                            {% else %}
+                                                0.00
+                                            {% endif %}
+                                        </td>
+                                        <td style="min-width: 140px;">
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                class="form-control form-control-sm amount-input"
+                                                name="amount_{{ worker.id }}"
+                                                value="{{ "%.2f"|format(amount_value or 0) }}"
+                                                {% if distribution_method != 'manual' %}readonly{% endif %}
+                                            >
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            {% else %}
+                <div class="p-4 text-center text-muted">لا يوجد عمال نشطون داخل هذه العائلة.</div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">سجل تاريخ الدفعات الجماعية</h5>
+        </div>
+        <div class="card-body border-bottom">
+            <form method="GET" class="row g-3">
+                <input type="hidden" name="family_id" value="{{ selected_family.id if selected_family else '' }}">
+                <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="payment_kind" value="{{ payment_kind }}">
+                <input type="hidden" name="distribution_method" value="{{ distribution_method }}">
+                <input type="hidden" name="total_amount" value="{{ total_amount }}">
+                <input type="hidden" name="description" value="{{ user_description or '' }}">
+                <input type="hidden" name="notes" value="{{ user_notes or '' }}">
+
+                <div class="col-md-4">
+                    <label for="history_family_id" class="form-label">فلترة حسب العائلة</label>
+                    <select name="history_family_id" id="history_family_id" class="form-select">
+                        <option value="">كل العائلات الجماعية</option>
+                        {% for family in families %}
+                            <option value="{{ family.id }}" {% if history_family_id and history_family_id == family.id %}selected{% endif %}>
+                                {{ family.family_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="history_date" class="form-label">فلترة حسب التاريخ</label>
+                    <input type="date" class="form-control" id="history_date" name="history_date" value="{{ history_date.strftime('%Y-%m-%d') if history_date else '' }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter"></i> تطبيق
+                    </button>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <a href="{{ url_for('workers.group_payments', family_id=(selected_family.id if selected_family else ''), date=selected_date.strftime('%Y-%m-%d'), payment_kind=payment_kind, distribution_method=distribution_method, total_amount=total_amount) }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-undo"></i> مسح فلاتر السجل
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-12">
+                    <h6 class="mb-2">الإجمالي اليومي</h6>
+                    {% if history_daily_totals %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for item in history_daily_totals %}
+                                <span class="badge bg-dark">
+                                    {{ item.date }} : {{ "%.2f"|format(item.total) }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">لا توجد بيانات حسب الفلاتر الحالية.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>تاريخ المجموعة</th>
+                            <th>تاريخ القيد</th>
+                            <th>العائلة</th>
+                            <th>العامل</th>
+                            <th>نوع الدفعة</th>
+                            <th>التوزيع</th>
+                            <th>المبلغ</th>
+                            <th>البيان</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in history_rows %}
+                            <tr>
+                                <td>{{ row.group_date }}</td>
+                                <td>{{ row.transaction.transaction_date }}</td>
+                                <td>{{ row.family_name }}</td>
+                                <td>{{ row.worker_name }}</td>
+                                <td>{{ row.payment_kind_label }}</td>
+                                <td>{{ row.distribution_label }}</td>
+                                <td>{{ "%.2f"|format(row.amount or 0) }}</td>
+                                <td>{{ row.transaction.description }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted p-3">لا يوجد سجل دفعات جماعية حتى الآن.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const checkAll = document.getElementById('check_all');
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            document.querySelectorAll('.worker-check').forEach((checkbox) => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+
+    const distributionSelect = document.getElementById('distribution_method_post');
+    if (distributionSelect) {
+        const amountInputs = document.querySelectorAll('.amount-input');
+        const applyMode = () => {
+            const isManual = distributionSelect.value === 'manual';
+            amountInputs.forEach((input) => {
+                input.readOnly = !isManual;
+            });
+        };
+        distributionSelect.addEventListener('change', applyMode);
+        applyMode();
+    }
+</script>
+{% endblock %}

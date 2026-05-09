@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}لوحة التحكم{% endblock %}
 
@@ -18,11 +18,11 @@
     </div>
     <div class="col-md-4 text-end">
         <div class="btn-group" role="group">
-            <a href="{{ url_for('home.dashboard', range='today') }}" class="btn btn-sm {% if selected_range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">اليوم</a>
-            <a href="{{ url_for('home.dashboard', range='month') }}" class="btn btn-sm {% if selected_range == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">هذا الشهر</a>
-            <a href="{{ url_for('home.dashboard', range='quarter') }}" class="btn btn-sm {% if selected_range == 'quarter' %}btn-primary{% else %}btn-outline-primary{% endif %}">آخر 3 أشهر</a>
-            <a href="{{ url_for('home.dashboard', range='year') }}" class="btn btn-sm {% if selected_range == 'year' %}btn-primary{% else %}btn-outline-primary{% endif %}">هذه السنة</a>
-            <a href="{{ url_for('home.dashboard', range='all') }}" class="btn btn-sm {% if selected_range == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">كل الفترات</a>
+            <a href="{{ url_for('home.dashboard', range='today', production_year=selected_production_year) }}" class="btn btn-sm {% if selected_range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">اليوم</a>
+            <a href="{{ url_for('home.dashboard', range='month', production_year=selected_production_year) }}" class="btn btn-sm {% if selected_range == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">هذا الشهر</a>
+            <a href="{{ url_for('home.dashboard', range='quarter', production_year=selected_production_year) }}" class="btn btn-sm {% if selected_range == 'quarter' %}btn-primary{% else %}btn-outline-primary{% endif %}">آخر 3 أشهر</a>
+            <a href="{{ url_for('home.dashboard', range='year', production_year=selected_production_year) }}" class="btn btn-sm {% if selected_range == 'year' %}btn-primary{% else %}btn-outline-primary{% endif %}">هذه السنة</a>
+            <a href="{{ url_for('home.dashboard', range='all', production_year=selected_production_year) }}" class="btn btn-sm {% if selected_range == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">كل الفترات</a>
         </div>
     </div>
 </div>
@@ -139,6 +139,37 @@
                 {% else %}
                     <p class="text-muted mb-0">لا توجد عناصر قريبة الانتهاء.</p>
                 {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0">إنتاج الأصناف حسب السنة</h5>
+                <form method="GET" class="d-flex align-items-center gap-2 flex-wrap">
+                    <input type="hidden" name="range" value="{{ selected_range }}">
+                    <label for="production_year" class="small mb-0">السنة:</label>
+                    <select id="production_year" name="production_year" class="form-select form-select-sm" onchange="this.form.submit()">
+                        {% if available_production_years %}
+                            {% for year in available_production_years %}
+                                <option value="{{ year }}" {% if year == selected_production_year %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="{{ selected_production_year }}" selected>{{ selected_production_year }}</option>
+                        {% endif %}
+                    </select>
+                    <noscript>
+                        <button type="submit" class="btn btn-sm btn-light">تطبيق</button>
+                    </noscript>
+                </form>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-chart-box">
+                    <canvas id="productionByYearChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -390,6 +421,14 @@
         }
 
         buildBarChart(
+            'productionByYearChart',
+            {{ yearly_production_chart_labels | tojson }},
+            {{ yearly_production_chart_values | tojson }},
+            'كمية الإنتاج في سنة ' + {{ selected_production_year | tojson }},
+            '#00695c'
+        );
+
+        buildBarChart(
             'productionChart',
             {{ production_chart_labels | tojson }},
             {{ production_chart_values | tojson }},
@@ -429,3 +468,6 @@
     });
 </script>
 {% endblock %}
+
+
+

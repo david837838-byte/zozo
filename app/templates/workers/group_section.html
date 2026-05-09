@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}القسم الجماعي - العمال{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>القسم الجماعي</h2>
+            <p class="text-muted mb-0">
+                إدارة أعمال العائلات والفرق بشكل مجمع داخل قسم العمال.
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('workers.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة لقسم العمال
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <small class="text-muted d-block">عدد العائلات</small>
+                    <h3 class="mb-0">{{ families_count or 0 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm bg-light">
+                <div class="card-body">
+                    <small class="text-muted d-block">عمال مرتبطون بعائلات</small>
+                    <h3 class="mb-0">{{ linked_workers_count or 0 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="fas fa-users me-2 text-primary"></i>إدارة العائلات
+                    </h5>
+                    <p class="text-muted">
+                        إنشاء عائلات عمل وتحديد التسعير الافتراضي (شباب/بنات) بالساعة أو شهريًا.
+                    </p>
+                    <a href="{{ url_for('workers.group_families') }}" class="btn btn-primary">
+                        فتح إدارة العائلات
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="fas fa-clipboard-check me-2 text-success"></i>الحضور الجماعي
+                    </h5>
+                    <p class="text-muted">
+                        إدخال حضور مجموعة دفعة واحدة مع توزيع الساعات تلقائيًا حسب النوع.
+                    </p>
+                    <a href="{{ url_for('workers.group_attendance') }}" class="btn btn-success">
+                        فتح الحضور الجماعي
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="fas fa-money-bill-wave me-2 text-warning"></i>الدفعات الجماعية
+                    </h5>
+                    <p class="text-muted">
+                        تسجيل سلفة أو دفعة على الحساب للعائلة مع توزيع المبلغ تلقائيًا على العمال.
+                    </p>
+                    <a href="{{ url_for('workers.group_payments') }}" class="btn btn-warning">
+                        فتح الدفعات الجماعية
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-4 mb-0">
+        تم تفعيل إدارة العائلات والحضور الجماعي والدفعات الجماعية.
+    </div>
+</div>
+{% endblock %}

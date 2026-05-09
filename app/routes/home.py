@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, render_template, request
 from flask_login import login_required
-from sqlalchemy import func
+from sqlalchemy import func, extract
 
 from app import db
 from app.models.accounting import EXPENSE_TRANSACTION_TYPE_ALIASES, Transaction
@@ -172,6 +172,43 @@ def dashboard():
     sales_chart_labels = [row.crop_name for row in sales_rows]
     sales_chart_values = [float(row.total_sales or 0) for row in sales_rows]
 
+    production_year_rows = (
+        db.session.query(extract('year', Production.production_date).label('year'))
+        .filter(Production.production_date.isnot(None))
+        .distinct()
+        .order_by(extract('year', Production.production_date).desc())
+        .all()
+    )
+    available_production_years = [
+        int(row.year) for row in production_year_rows if row.year is not None
+    ]
+
+    selected_production_year_raw = (request.args.get('production_year') or '').strip()
+    if selected_production_year_raw.isdigit():
+        selected_production_year = int(selected_production_year_raw)
+    elif available_production_years:
+        selected_production_year = available_production_years[0]
+    else:
+        selected_production_year = date.today().year
+
+    if available_production_years and selected_production_year not in available_production_years:
+        selected_production_year = available_production_years[0]
+
+    yearly_production_rows = (
+        db.session.query(
+            Crop.name.label('crop_name'),
+            func.coalesce(func.sum(Production.quantity), 0).label('total_quantity'),
+        )
+        .join(Crop, Crop.id == Production.crop_id)
+        .filter(extract('year', Production.production_date) == selected_production_year)
+        .group_by(Crop.name)
+        .order_by(func.coalesce(func.sum(Production.quantity), 0).desc())
+        .limit(12)
+        .all()
+    )
+    yearly_production_chart_labels = [row.crop_name for row in yearly_production_rows]
+    yearly_production_chart_values = [float(row.total_quantity or 0) for row in yearly_production_rows]
+
     (
         medicine_chart_labels,
         medicine_chart_qty_values,
@@ -234,6 +271,10 @@ def dashboard():
         date_range_label=date_range_label,
         production_chart_labels=production_chart_labels,
         production_chart_values=production_chart_values,
+        available_production_years=available_production_years,
+        selected_production_year=selected_production_year,
+        yearly_production_chart_labels=yearly_production_chart_labels,
+        yearly_production_chart_values=yearly_production_chart_values,
         sales_chart_labels=sales_chart_labels,
         sales_chart_values=sales_chart_values,
         medicine_chart_labels=medicine_chart_labels,

@@ -49,7 +49,7 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-2 col-6 mb-3">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h6 class="card-title">إجمالي الحاضرين</h6>
@@ -57,7 +57,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2 col-6 mb-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h6 class="card-title">إجمالي قبل الدفعات</h6>
@@ -65,15 +65,31 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2 col-6 mb-3">
             <div class="card bg-warning text-dark">
                 <div class="card-body">
-                    <h6 class="card-title">المدفوع على الحساب</h6>
+                    <h6 class="card-title">إجمالي السلف</h6>
+                    <h3>${{ "%.2f"|format(total_worker_loans or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">دفعات على الحساب</h6>
+                    <h3>${{ "%.2f"|format(total_worker_advances or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h6 class="card-title">إجمالي المدفوع</h6>
                     <h3>${{ "%.2f"|format(total_worker_payments or 0) }}</h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2 col-6 mb-3">
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h6 class="card-title">المتبقي للرواتب</h6>
@@ -94,7 +110,9 @@
                     <th>أيام الغياب</th>
                     <th>إجمالي الساعات</th>
                     <th>الإجمالي قبل الدفعات</th>
-                    <th>المدفوع على الحساب</th>
+                    <th>السلف</th>
+                    <th>دفعة على الحساب</th>
+                    <th>إجمالي المدفوع</th>
                     <th>المتبقي</th>
                     <th>الإجراء</th>
                 </tr>
@@ -114,7 +132,9 @@
                     <td><span class="badge bg-danger">{{ monthly.absent_days }}</span></td>
                     <td>{{ "%.2f"|format(monthly.total_hours or 0) }}</td>
                     <td>${{ "%.2f"|format(monthly.salary_before_worker_payments or monthly.net_salary or 0) }}</td>
-                    <td><span class="text-warning">${{ "%.2f"|format(monthly.worker_payment_deductions or 0) }}</span></td>
+                    <td><span class="text-warning">${{ "%.2f"|format(monthly.worker_loans or 0) }}</span></td>
+                    <td><span class="text-secondary">${{ "%.2f"|format(monthly.worker_advances or 0) }}</span></td>
+                    <td><span class="text-dark">${{ "%.2f"|format(monthly.worker_payment_deductions or 0) }}</span></td>
                     <td>
                         <strong class="{% if (monthly.remaining_salary or 0) >= 0 %}text-success{% else %}text-danger{% endif %}">
                             ${{ "%.2f"|format(monthly.remaining_salary or 0) }}

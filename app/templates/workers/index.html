@@ -23,6 +23,9 @@
         <a href="{{ url_for('workers.monthly_attendance') }}" class="btn btn-info">
             <i class="fas fa-calendar-alt"></i> الحضور الشهري
         </a>
+        <a href="{{ url_for('workers.group_section') }}" class="btn btn-dark">
+            <i class="fas fa-users"></i> قسم جماعي
+        </a>
         <a href="{{ url_for('workers.closed_accounts') }}" class="btn btn-secondary">
             <i class="fas fa-archive"></i> الحسابات المسكرة
         </a>
@@ -37,6 +40,8 @@
                     <th>الاسم</th>
                     <th>الهاتف</th>
                     <th>البريد الإلكتروني</th>
+                    <th>العائلة</th>
+                    <th>الجنس</th>
                     <th>نوع العامل</th>
                     <th>موقع العمل</th>
                     <th>إجمالي الساعات</th>
@@ -52,6 +57,8 @@
                     <td>{{ worker.name }}</td>
                     <td>{{ worker.phone }}</td>
                     <td>{{ worker.email }}</td>
+                    <td>{{ worker.family.family_name if worker.family else '-' }}</td>
+                    <td>{{ worker.gender or '-' }}</td>
                     <td>
                         {% if worker.is_monthly %}
                             <span class="badge bg-success">شهري</span>
@@ -102,7 +109,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" class="text-center text-muted p-4">لا توجد عمال مسجلة</td>
+                    <td colspan="11" class="text-center text-muted p-4">لا توجد عمال مسجلة</td>
                 </tr>
                 {% endfor %}
             </tbody>
