@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from flask import has_request_context, session as flask_session
-from sqlalchemy import event, inspect, select, text
+from sqlalchemy import event, inspect, select, text, or_
 from sqlalchemy.orm import Session, with_loader_criteria
 
 from app import db
@@ -217,7 +217,7 @@ def init_tenant_isolation():
             statement = statement.options(
                 with_loader_criteria(
                     model_class,
-                    lambda cls: cls.account_id == account_id,
+                    lambda cls: or_(cls.account_id == account_id, cls.account_id.is_(None)),
                     include_aliases=True,
                 )
             )

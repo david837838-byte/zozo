@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app
 from flask_login import login_required, current_user
-from sqlalchemy import func, or_
+from sqlalchemy import case, func, or_
 from app import db
 from app.models.worker import WorkerFamily, Worker, WorkLog, MotorLog, Attendance, MonthlyAttendance
 from app.models.accounting import (
@@ -191,7 +191,12 @@ def _extract_marker_value(text, marker_key):
 def _get_or_create_worker_payment_category():
     """Ensure a dedicated accounting category for worker loans/advances."""
     category_name = 'دفعات وسلف العمال'
-    category = ExpenseCategory.query.filter_by(name=category_name).first()
+    category = (
+        ExpenseCategory.query
+        .execution_options(tenant_skip=True)
+        .filter_by(name=category_name)
+        .first()
+    )
     if category:
         return category
 
@@ -1257,9 +1262,10 @@ def group_payments():
                     history_date=history_date.strftime('%Y-%m-%d') if history_date else '',
                 )
             )
-        except Exception:
+        except Exception as exc:
             db.session.rollback()
-            flash('حدث خطأ أثناء تسجيل الدفعات الجماعية', 'danger')
+            current_app.logger.exception('Group payment creation failed')
+            flash(f'حدث خطأ أثناء تسجيل الدفعات الجماعية: {exc}', 'danger')
 
     history_query = (
         Transaction.query.filter(
