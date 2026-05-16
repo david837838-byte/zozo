@@ -1,0 +1,145 @@
+﻿{% extends "base.html" %}
+
+{% block title %}فاتورة بيع {{ invoice_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .invoice-box {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        padding: 24px;
+    }
+
+    @media print {
+        @page {
+            size: A4;
+            margin: 12mm;
+        }
+
+        body * {
+            visibility: hidden !important;
+        }
+
+        .invoice-box,
+        .invoice-box * {
+            visibility: visible !important;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        .invoice-box {
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            border-radius: 0;
+        }
+
+        body {
+            background: #fff !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h1 class="mb-0">فاتورة بيع</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('sales.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-right"></i> رجوع للمبيعات
+        </a>
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-printer"></i> طباعة
+        </button>
+    </div>
+</div>
+
+<div class="invoice-box">
+    <div class="row mb-4">
+        <div class="col-6">
+            <h4 class="mb-1">{{ site_name }}</h4>
+            <div class="text-muted">فاتورة بيع</div>
+        </div>
+        <div class="col-6 text-end">
+            <div><strong>رقم الفاتورة:</strong> {{ invoice_number }}</div>
+            <div><strong>تاريخ البيع:</strong> {{ sale.sale_date }}</div>
+            <div><strong>تاريخ الإصدار:</strong> {{ sale.created_at.strftime('%Y-%m-%d %H:%M') if sale.created_at else '-' }}</div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div><strong>اسم المشتري:</strong> {{ sale.buyer_name or 'غير مسجل' }}</div>
+            <div><strong>هاتف المشتري:</strong> {{ sale.buyer_phone or 'غير مسجل' }}</div>
+        </div>
+        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+            <div><strong>حالة الدفع:</strong> {{ sale.payment_status or '-' }}</div>
+            <div><strong>عدد البنود:</strong> {{ invoice_sales|length }}</div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>الصنف</th>
+                    <th>الجودة</th>
+                    <th>الكمية</th>
+                    <th>السعر للوحدة</th>
+                    <th>الإجمالي قبل الخصم</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line in invoice_sales %}
+                <tr>
+                    <td>{{ line.crop.name }}</td>
+                    <td>{{ line.quality or 'متوسطة' }}</td>
+                    <td>{{ line.quantity }} {{ line.unit }}</td>
+                    <td>{{ line.price_per_unit }}</td>
+                    <td><strong>{{ line.subtotal() }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row justify-content-end">
+        <div class="col-md-5">
+            <table class="table table-sm">
+                <tr>
+                    <th>الإجمالي قبل الخصم</th>
+                    <td class="text-end">{{ invoice_totals.subtotal }}</td>
+                </tr>
+                <tr>
+                    <th>الخصم{% if invoice_totals.discount_percent %} ({{ invoice_totals.discount_percent }}%){% endif %}</th>
+                    <td class="text-end">{{ invoice_totals.discount_amount }}</td>
+                </tr>
+                <tr>
+                    <th>النقل (يُخصم)</th>
+                    <td class="text-end">{{ invoice_totals.transport_cost }}</td>
+                </tr>
+                <tr class="table-light">
+                    <th>الصافي النهائي</th>
+                    <td class="text-end"><strong>{{ invoice_totals.net_total }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    {% if sale.notes %}
+    <div class="mt-3">
+        <strong>ملاحظات:</strong>
+        <div class="text-muted">{{ sale.notes }}</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

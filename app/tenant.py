@@ -1,7 +1,7 @@
-from functools import lru_cache
+﻿from functools import lru_cache
 
 from flask import has_request_context, session as flask_session
-from sqlalchemy import event, inspect, select, text, or_
+from sqlalchemy import event, inspect, select, text
 from sqlalchemy.orm import Session, with_loader_criteria
 
 from app import db
@@ -63,6 +63,13 @@ _EXTRA_SCHEMA_COLUMNS = {
         "active_ingredient": "VARCHAR(200)",
         "common_usage": "TEXT",
         "safety_notes": "TEXT",
+    },
+    "sales": {
+        "quality": "VARCHAR(50) DEFAULT 'متوسطة'",
+        "discount_percent": "FLOAT DEFAULT 0",
+        "discount_amount": "FLOAT DEFAULT 0",
+        "transport_cost": "FLOAT DEFAULT 0",
+        "invoice_group_key": "VARCHAR(64)",
     },
 }
 
@@ -131,7 +138,7 @@ def ensure_multi_tenant_schema():
         Account.query.order_by(Account.id.asc()).first()
     )
     if not default_account:
-        default_account = Account(name="الحساب الافتراضي")
+        default_account = Account(name="Ø§Ù„Ø­Ø³Ø§Ø¨ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ")
         db.session.add(default_account)
         db.session.commit()
 
@@ -151,6 +158,31 @@ def ensure_multi_tenant_schema():
         text(
             'UPDATE "user" SET is_super_admin = 0 '
             'WHERE is_super_admin IS NULL'
+        )
+    )
+    db.session.execute(
+        text(
+            'UPDATE "sales" SET quality = :default_quality '
+            'WHERE quality IS NULL OR TRIM(quality) = \'\''
+        ),
+        {"default_quality": "متوسطة"},
+    )
+    db.session.execute(
+        text(
+            'UPDATE "sales" SET discount_percent = 0 '
+            'WHERE discount_percent IS NULL'
+        )
+    )
+    db.session.execute(
+        text(
+            'UPDATE "sales" SET discount_amount = 0 '
+            'WHERE discount_amount IS NULL'
+        )
+    )
+    db.session.execute(
+        text(
+            'UPDATE "sales" SET transport_cost = 0 '
+            'WHERE transport_cost IS NULL'
         )
     )
 
@@ -217,7 +249,7 @@ def init_tenant_isolation():
             statement = statement.options(
                 with_loader_criteria(
                     model_class,
-                    lambda cls: or_(cls.account_id == account_id, cls.account_id.is_(None)),
+                    lambda cls: cls.account_id == account_id,
                     include_aliases=True,
                 )
             )
@@ -273,3 +305,4 @@ def init_tenant_isolation():
                 raise PermissionError("Cross-account mutation blocked")
 
     _TENANT_INIT_DONE = True
+

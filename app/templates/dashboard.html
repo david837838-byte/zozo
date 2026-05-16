@@ -204,6 +204,36 @@
 </div>
 
 <div class="row mt-4">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">المصروفات حسب الفئة (ضمن الفترة)</h5>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-chart-box">
+                    <canvas id="expenseByCategoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">اتجاه المصروفات الشهري (ضمن الفترة)</h5>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-chart-box">
+                    <canvas id="monthlyExpenseTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
     <div class="col-lg-6">
         <div class="card h-100">
             <div class="card-header">
@@ -420,6 +450,90 @@
             });
         }
 
+        function buildDoughnutChart(canvasId, labels, values, datasetLabel) {
+            var chartElement = document.getElementById(canvasId);
+            if (!chartElement) return;
+
+            var series = normalizeSeries(labels, values, 'لا توجد مصروفات');
+            var palette = ['#c62828', '#ef6c00', '#f9a825', '#2e7d32', '#00838f', '#1565c0', '#283593', '#6a1b9a', '#ad1457', '#4e342e', '#455a64', '#7b1fa2'];
+            var dataValues = series.values.map(function (v) { return Number(v || 0); });
+            var sumValues = dataValues.reduce(function (acc, item) { return acc + item; }, 0);
+            var backgroundColors = sumValues === 0
+                ? ['#cfd8dc']
+                : series.labels.map(function (_, idx) { return palette[idx % palette.length] + 'cc'; });
+            var borderColors = sumValues === 0
+                ? ['#90a4ae']
+                : series.labels.map(function (_, idx) { return palette[idx % palette.length]; });
+
+            new Chart(chartElement.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: series.labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: dataValues,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var value = Number(context.parsed || 0);
+                                    var total = context.dataset.data.reduce(function(sum, current) {
+                                        return sum + Number(current || 0);
+                                    }, 0);
+                                    var percent = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                    return context.label + ': ' + value.toLocaleString() + ' (' + percent + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function buildLineChart(canvasId, labels, values, datasetLabel, lineColor) {
+            var chartElement = document.getElementById(canvasId);
+            if (!chartElement) return;
+
+            var series = normalizeSeries(labels, values, 'لا توجد بيانات');
+            new Chart(chartElement.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: series.labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: series.values,
+                        borderColor: lineColor,
+                        backgroundColor: lineColor + '33',
+                        borderWidth: 3,
+                        tension: 0.25,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
         buildBarChart(
             'productionByYearChart',
             {{ yearly_production_chart_labels | tojson }},
@@ -442,6 +556,21 @@
             {{ sales_chart_values | tojson }},
             'قيمة المبيعات',
             '#1565c0'
+        );
+
+        buildDoughnutChart(
+            'expenseByCategoryChart',
+            {{ expense_category_chart_labels | tojson }},
+            {{ expense_category_chart_values | tojson }},
+            'قيمة المصروفات'
+        );
+
+        buildLineChart(
+            'monthlyExpenseTrendChart',
+            {{ monthly_expense_chart_labels | tojson }},
+            {{ monthly_expense_chart_values | tojson }},
+            'إجمالي المصروف الشهري',
+            '#b71c1c'
         );
 
         buildConsumptionChart(

@@ -239,6 +239,7 @@ def add_transaction():
         if not form_data:
             return redirect(url_for('accounting.add_transaction'))
 
+        form_data['account_id'] = current_user.account_id
         transaction = Transaction(**form_data)
 
         try:

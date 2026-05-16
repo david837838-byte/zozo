@@ -10,6 +10,7 @@ from app.models.app_setting import AppSetting
 from app.models.audit_log import AuditLog
 from app.models.ai_chat import AIConversation, AIConversationMessage
 from app.models.user_session import UserSession
+from app.models.login_attempt import LoginAttempt
 
 __all__ = [
     'Account',
@@ -22,5 +23,6 @@ __all__ = [
     'Transaction', 'ExpenseCategory',
     'AppSetting', 'AuditLog',
     'AIConversation', 'AIConversationMessage',
-    'UserSession'
+    'UserSession',
+    'LoginAttempt',
 ]

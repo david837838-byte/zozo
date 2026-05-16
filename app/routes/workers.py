@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import case, func, or_
+from sqlalchemy import func, or_
 from app import db
 from app.models.worker import WorkerFamily, Worker, WorkLog, MotorLog, Attendance, MonthlyAttendance
 from app.models.accounting import (
@@ -191,22 +191,38 @@ def _extract_marker_value(text, marker_key):
 def _get_or_create_worker_payment_category():
     """Ensure a dedicated accounting category for worker loans/advances."""
     category_name = 'دفعات وسلف العمال'
-    category = (
-        ExpenseCategory.query
-        .execution_options(tenant_skip=True)
-        .filter_by(name=category_name)
-        .first()
-    )
+    account_id = current_user.account_id if current_user else None
+    
+    if not account_id:
+        return None
+    
+    # البحث عن فئة موجودة لنفس الحساب والاسم
+    category = ExpenseCategory.query.filter_by(
+        account_id=account_id,
+        name=category_name
+    ).first()
+    
     if category:
         return category
-
-    category = ExpenseCategory(
-        name=category_name,
-        description='قيود السلف والدفعات على الحساب المرتبطة بقسم العمال'
-    )
-    db.session.add(category)
-    db.session.flush()
-    return category
+    
+    # محاولة إنشاء فئة جديدة
+    try:
+        category = ExpenseCategory(
+            account_id=account_id,
+            name=category_name,
+            description='قيود السلف والدفعات على الحساب المرتبطة بقسم العمال'
+        )
+        db.session.add(category)
+        db.session.flush()
+        return category
+    except Exception:
+        # في حالة الفشل، ابحث مجدداً
+        db.session.rollback()
+        category = ExpenseCategory.query.filter_by(
+            account_id=account_id,
+            name=category_name
+        ).first()
+        return category
 
 
 def _detect_worker_payment_kind(transaction):
@@ -564,6 +580,7 @@ def add_worker_payment(worker_id):
     try:
         category = _get_or_create_worker_payment_category()
         transaction = Transaction(
+            account_id=current_user.account_id,
             category_id=category.id if category else None,
             transaction_type='مصروف',
             description=description,
@@ -1075,10 +1092,22 @@ def group_payments():
     if not current_user.can_manage_workers and not current_user.is_admin:
         flash('ليس لديك صلاحية الوصول إلى هذا القسم', 'danger')
         return redirect(url_for('workers.index'))
+    
+    # التحقق من أن المستخدم لديه حساب مرتبط
+    if not current_user.account_id:
+        flash('لا يمكن تسجيل الدفعات بدون حساب مرتبط', 'danger')
+        return redirect(url_for('workers.index'))
 
-    families = WorkerFamily.query.filter_by(is_active=True).order_by(WorkerFamily.family_name.asc()).all()
+    families = WorkerFamily.query.filter_by(account_id=current_user.account_id, is_active=True).order_by(WorkerFamily.family_name.asc()).all()
 
-    source_values = request.form if request.method == 'POST' else request.args
+    # جمع البيانات من النموذج والـ URL (query string)
+    if request.method == 'POST':
+        source_values = request.form.to_dict()
+        # إضافة query string values إذا كانت موجودة
+        source_values.update(request.args.to_dict())
+    else:
+        source_values = request.args.to_dict()
+    
     selected_family_id = _safe_int(source_values.get('family_id'))
     selected_date = _safe_date(source_values.get('date'), default=date.today())
     payment_kind = (source_values.get('payment_kind') or 'loan').strip()
@@ -1089,14 +1118,14 @@ def group_payments():
     history_family_id = _safe_int(source_values.get('history_family_id'), default=selected_family_id)
     history_date = _safe_optional_date(source_values.get('history_date'))
 
-    selected_family = WorkerFamily.query.get(selected_family_id) if selected_family_id else None
+    selected_family = WorkerFamily.query.filter_by(id=selected_family_id, account_id=current_user.account_id).first() if selected_family_id else None
     family_workers = []
     attendance_map = {}
     preview_amounts = {}
 
     if selected_family:
         family_workers = (
-            Worker.query.filter_by(family_id=selected_family.id, is_active=True)
+            Worker.query.filter_by(family_id=selected_family.id, account_id=current_user.account_id, is_active=True)
             .order_by(Worker.name.asc())
             .all()
         )
@@ -1104,6 +1133,7 @@ def group_payments():
         if worker_ids:
             attendance_rows = (
                 Attendance.query.filter(
+                    Attendance.account_id == current_user.account_id,
                     Attendance.worker_id.in_(worker_ids),
                     Attendance.attendance_date == selected_date,
                 )
@@ -1146,10 +1176,19 @@ def group_payments():
 
         selected_worker_ids = []
         manual_amounts = {}
+        
+        # إذا لم يتم توفير include_* fields، نقوم بتحديد جميع العمال افتراضياً
+        has_include_fields = any(f'include_{worker.id}' in request.form or f'include_{worker.id}' in request.args for worker in family_workers)
+        
         for worker in family_workers:
-            if request.form.get(f'include_{worker.id}') == 'on':
+            # البحث عن include_* في form والـ query string
+            include_value = request.form.get(f'include_{worker.id}') or request.args.get(f'include_{worker.id}')
+            
+            # إذا لم تكن هناك include fields على الإطلاق، نختار جميع العمال افتراضياً
+            if not has_include_fields or include_value == 'on' or include_value == 'true':
                 selected_worker_ids.append(worker.id)
-                manual_amounts[worker.id] = max(0.0, _safe_float(request.form.get(f'amount_{worker.id}'), 0.0))
+                amount_value = request.form.get(f'amount_{worker.id}') or request.args.get(f'amount_{worker.id}')
+                manual_amounts[worker.id] = max(0.0, _safe_float(amount_value, 0.0))
 
         if not selected_worker_ids:
             flash('يرجى اختيار عامل واحد على الأقل', 'warning')
@@ -1233,6 +1272,7 @@ def group_payments():
                 full_notes = f"{marker} {group_marker} {user_notes}".strip()
 
                 transaction = Transaction(
+                    account_id=current_user.account_id,
                     category_id=category.id if category else None,
                     transaction_type='مصروف',
                     description=description,
@@ -1262,13 +1302,15 @@ def group_payments():
                     history_date=history_date.strftime('%Y-%m-%d') if history_date else '',
                 )
             )
-        except Exception as exc:
+        except Exception as e:
             db.session.rollback()
-            current_app.logger.exception('Group payment creation failed')
-            flash(f'حدث خطأ أثناء تسجيل الدفعات الجماعية: {exc}', 'danger')
+            import traceback
+            traceback.print_exc()
+            flash(f'حدث خطأ أثناء تسجيل الدفعات الجماعية: {str(e)}', 'danger')
 
     history_query = (
         Transaction.query.filter(
+            Transaction.account_id == current_user.account_id,
             Transaction.reference_type.in_(WORKER_REFERENCE_TYPE_ALIASES),
             Transaction.transaction_type.in_(EXPENSE_TRANSACTION_TYPE_ALIASES),
             Transaction.notes.isnot(None),
@@ -1291,12 +1333,15 @@ def group_payments():
     if worker_ids:
         workers_map = {
             worker.id: worker.name
-            for worker in Worker.query.filter(Worker.id.in_(worker_ids)).all()
+            for worker in Worker.query.filter(
+                Worker.account_id == current_user.account_id,
+                Worker.id.in_(worker_ids)
+            ).all()
         }
 
     families_map = {
         family.id: family.family_name
-        for family in WorkerFamily.query.order_by(WorkerFamily.family_name.asc()).all()
+        for family in WorkerFamily.query.filter_by(account_id=current_user.account_id).order_by(WorkerFamily.family_name.asc()).all()
     }
     distribution_labels = {
         'equal': 'بالتساوي',

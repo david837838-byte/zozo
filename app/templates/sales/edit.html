@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}تعديل بيع{% endblock %}
 
@@ -12,6 +12,7 @@
 <div class="card">
     <div class="card-body">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="crop_id" class="form-label">الصنف</label>
@@ -29,8 +30,14 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="quantity" class="form-label">الكمية</label>
-                    <input type="number" class="form-control" id="quantity" name="quantity" step="0.01" value="{{ sale.quantity }}" required>
+                    <label for="quality" class="form-label">الجودة</label>
+                    {% set q = sale.quality or 'متوسطة' %}
+                    <select class="form-select" id="quality" name="quality" required>
+                        <option value="ممتازة" {% if q == 'ممتازة' %}selected{% endif %}>ممتازة</option>
+                        <option value="جيدة" {% if q == 'جيدة' %}selected{% endif %}>جيدة</option>
+                        <option value="متوسطة" {% if q == 'متوسطة' %}selected{% endif %}>متوسطة</option>
+                        <option value="منخفضة" {% if q == 'منخفضة' %}selected{% endif %}>منخفضة</option>
+                    </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="unit" class="form-label">الوحدة</label>
@@ -40,9 +47,37 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="price_per_unit" class="form-label">السعر لكل وحدة</label>
-                    <input type="number" class="form-control" id="price_per_unit" name="price_per_unit" step="0.01" value="{{ sale.price_per_unit }}" required>
+                    <label for="quantity" class="form-label">الكمية</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" step="0.01" min="0.01" value="{{ sale.quantity }}" required>
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="price_per_unit" class="form-label">السعر لكل وحدة</label>
+                    <input type="number" class="form-control" id="price_per_unit" name="price_per_unit" step="0.01" min="0" value="{{ sale.price_per_unit }}" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="discount_percent" class="form-label">خصم اختياري (%)</label>
+                    <input type="number" class="form-control" id="discount_percent" name="discount_percent" step="0.01" min="0" max="100" value="{{ sale.discount_percent or 0 }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="transport_cost" class="form-label">نقل اختياري</label>
+                    <input type="number" class="form-control" id="transport_cost" name="transport_cost" step="0.01" min="0" value="{{ sale.transport_cost or 0 }}">
+                </div>
+            </div>
+
+            <div class="alert alert-secondary py-2">
+                <small>
+                    <strong>ملخص سريع:</strong>
+                    قبل الخصم <span id="subtotal-preview">0</span> |
+                    قيمة الخصم <span id="discount-preview">0</span> |
+                    النقل <span id="transport-preview">0</span> |
+                    الصافي <span id="net-preview">0</span>
+                </small>
+            </div>
+
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="payment_status" class="form-label">حالة الدفع</label>
                     <select class="form-select" id="payment_status" name="payment_status">
@@ -50,22 +85,21 @@
                         <option value="غير مدفوع"{% if sale.payment_status == 'غير مدفوع' %} selected{% endif %}>غير مدفوع</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="buyer_name" class="form-label">اسم المشتري</label>
                     <input type="text" class="form-control" id="buyer_name" name="buyer_name" value="{{ sale.buyer_name or '' }}">
                 </div>
+            </div>
+
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="buyer_phone" class="form-label">رقم المشتري</label>
                     <input type="tel" class="form-control" id="buyer_phone" name="buyer_phone" value="{{ sale.buyer_phone or '' }}">
                 </div>
-            </div>
-
-            <div class="mb-3">
-                <label for="notes" class="form-label">ملاحظات</label>
-                <textarea class="form-control" id="notes" name="notes" rows="3">{{ sale.notes or '' }}</textarea>
+                <div class="col-md-6 mb-3">
+                    <label for="notes" class="form-label">ملاحظات</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="2">{{ sale.notes or '' }}</textarea>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -79,4 +113,42 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const quantityInput = document.getElementById('quantity');
+    const priceInput = document.getElementById('price_per_unit');
+    const discountInput = document.getElementById('discount_percent');
+    const transportInput = document.getElementById('transport_cost');
+    const subtotalPreview = document.getElementById('subtotal-preview');
+    const discountPreview = document.getElementById('discount-preview');
+    const transportPreview = document.getElementById('transport-preview');
+    const netPreview = document.getElementById('net-preview');
+
+    function parseNum(value) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function updateTotalsPreview() {
+        const quantity = parseNum(quantityInput.value);
+        const price = parseNum(priceInput.value);
+        const discountPercent = parseNum(discountInput.value);
+        const transport = parseNum(transportInput.value);
+        const subtotal = quantity * price;
+        const discountAmount = subtotal * (discountPercent / 100);
+        const net = subtotal - discountAmount - transport;
+        subtotalPreview.textContent = subtotal.toFixed(2);
+        discountPreview.textContent = discountAmount.toFixed(2);
+        transportPreview.textContent = transport.toFixed(2);
+        netPreview.textContent = net.toFixed(2);
+    }
+
+    [quantityInput, priceInput, discountInput, transportInput].forEach(el => {
+        el.addEventListener('input', updateTotalsPreview);
+    });
+
+    document.addEventListener('DOMContentLoaded', updateTotalsPreview);
+</script>
 {% endblock %}

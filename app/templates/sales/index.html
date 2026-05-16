@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}المبيعات - {{ site_name }}{% endblock %}
 
@@ -6,7 +6,7 @@
 <div class="row mb-4">
     <div class="col-8">
         <h1>المبيعات</h1>
-        <p class="lead text-success">إجمالي الإيرادات: <strong>{{ total_revenue|round(0) }} $</strong></p>
+        <p class="lead text-success">إجمالي الإيرادات: <strong>{{ total_revenue|round(2) }} $</strong></p>
     </div>
     <div class="col-4">
         <a href="{{ url_for('sales.add_sale') }}" class="btn btn-primary float-end">
@@ -22,9 +22,10 @@
                 <tr>
                     <th>الصنف</th>
                     <th>التاريخ</th>
+                    <th>الجودة</th>
                     <th>الكمية</th>
                     <th>السعر/الوحدة</th>
-                    <th>الإجمالي</th>
+                    <th>صافي الفاتورة</th>
                     <th>المشتري</th>
                     <th>الحالة</th>
                     <th>الإجراءات</th>
@@ -35,26 +36,33 @@
                 <tr>
                     <td>{{ sale.crop.name }}</td>
                     <td>{{ sale.sale_date }}</td>
+                    <td>
+                        {% set q = sale.quality or 'متوسطة' %}
+                        <span class="badge {% if q == 'ممتازة' %}bg-success{% elif q == 'جيدة' %}bg-info{% elif q == 'متوسطة' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ q }}</span>
+                    </td>
                     <td>{{ sale.quantity }} {{ sale.unit }}</td>
                     <td>{{ sale.price_per_unit }}</td>
-                    <td><strong>{{ sale.total_price }}</strong></td>
-                    <td>{{ sale.buyer_name }}</td>
+                    <td><strong>{{ sale.net_total() }}</strong></td>
+                    <td>{{ sale.buyer_name or '-' }}</td>
                     <td>
                         {% if sale.payment_status == 'مدفوع' %}
                             <span class="badge bg-success">مدفوع</span>
                         {% else %}
-                            <span class="badge bg-warning">غير مدفوع</span>
+                            <span class="badge bg-warning text-dark">غير مدفوع</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <a href="{{ url_for('sales.edit_sale', sale_id=sale.id) }}" class="btn btn-sm btn-warning">
-                            <i class="bi bi-pencil"></i>
+                    <td class="text-nowrap">
+                        <a href="{{ url_for('sales.invoice', sale_id=sale.id) }}" class="btn btn-sm btn-info me-1 mb-1" title="عرض الفاتورة">
+                            <i class="bi bi-receipt"></i> فاتورة
+                        </a>
+                        <a href="{{ url_for('sales.edit_sale', sale_id=sale.id) }}" class="btn btn-sm btn-warning me-1 mb-1" title="تعديل البيع">
+                            <i class="bi bi-pencil"></i> تعديل
                         </a>
                         {% if current_user.can_delete or current_user.is_admin %}
-                        <form method="POST" action="{{ url_for('sales.delete_sale', sale_id=sale.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد؟')">
+                        <form method="POST" action="{{ url_for('sales.delete_sale', sale_id=sale.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف البيع؟')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn-sm btn-danger">
-                                <i class="bi bi-trash"></i>
+                            <button type="submit" class="btn btn-sm btn-danger mb-1" title="حذف البيع">
+                                <i class="bi bi-trash"></i> حذف
                             </button>
                         </form>
                         {% endif %}
@@ -62,7 +70,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted p-4">لا توجد مبيعات مسجلة</td>
+                    <td colspan="9" class="text-center text-muted p-4">لا توجد مبيعات مسجلة</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -19,6 +19,9 @@ class Config:
     SESSION_COOKIE_SECURE = False
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    TRUST_PROXY_HEADERS = str(os.environ.get('TRUST_PROXY_HEADERS', 'false')).strip().lower() in {
+        '1', 'true', 'yes', 'on'
+    }
 
 class DevelopmentConfig(Config):
     """Development configuration"""

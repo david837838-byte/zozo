@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, request, session, url_for
+﻿from flask import Flask, flash, redirect, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from app.security import get_csrf_token, get_submitted_csrf_token, validate_csrf_token
@@ -43,7 +43,7 @@ def create_app(config_name='development'):
     init_audit_logging()
     init_tenant_isolation()
     login_manager.login_view = 'auth.login'
-    login_manager.login_message = 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة'
+    login_manager.login_message = 'ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù„Ù„ÙˆØµÙˆÙ„ Ø¥Ù„Ù‰ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©'
     
     # Register blueprints
     with app.app_context():
@@ -76,7 +76,7 @@ def create_app(config_name='development'):
 
     @app.context_processor
     def inject_site_name():
-        default_name = "نظام المزرعة"
+        default_name = "Ù†Ø¸Ø§Ù… Ø§Ù„Ù…Ø²Ø±Ø¹Ø©"
         try:
             from app.models.app_setting import AppSetting
 
@@ -129,26 +129,50 @@ def create_app(config_name='development'):
         return None
 
     @app.before_request
-    def enforce_delete_csrf():
-        """Require CSRF token on all delete POST handlers."""
+    def enforce_csrf_for_state_changes():
+        """Require CSRF token on all state-changing requests."""
+        if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
+            return None
+
         endpoint = request.endpoint or ""
-        if request.method != "POST":
-            return None
-
-        view_func = app.view_functions.get(endpoint)
-        if not view_func:
-            return None
-
-        if not view_func.__name__.startswith("delete_"):
+        if endpoint.startswith("static"):
             return None
 
         submitted_token = get_submitted_csrf_token()
         if validate_csrf_token(submitted_token):
             return None
 
+        if request.is_json:
+            return {"error": "رمز الأمان غير صالح أو مفقود"}, 400
+
         flash("رمز الأمان غير صالح، يرجى إعادة المحاولة", "danger")
         return redirect(request.referrer or url_for("home.index"))
 
+    @app.after_request
+    def set_security_headers(response):
+        """Attach baseline security headers for every response."""
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'self';"
+        )
+        response.headers.setdefault("Content-Security-Policy", csp)
+
+        if not app.debug:
+            response.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains",
+            )
+        return response
     @app.errorhandler(PermissionError)
     def handle_permission_error(error):
         try:
@@ -156,7 +180,8 @@ def create_app(config_name='development'):
         except Exception:
             pass
 
-        flash("لا يمكنك الوصول أو التعديل على بيانات حساب آخر", "danger")
+        flash("Ù„Ø§ ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ù„ÙˆØµÙˆÙ„ Ø£Ùˆ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ø¹Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§Øª Ø­Ø³Ø§Ø¨ Ø¢Ø®Ø±", "danger")
         return redirect(request.referrer or url_for("home.index"))
     
     return app
+

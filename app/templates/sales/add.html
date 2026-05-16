@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}إضافة بيع جديد{% endblock %}
 
@@ -6,17 +6,19 @@
 <div class="row mb-4">
     <div class="col-12">
         <h1>إضافة بيع جديد</h1>
+        <p class="text-muted mb-0">يمكنك تسجيل عدة جودات بأسعار مختلفة للمشتري نفسه داخل فاتورة واحدة.</p>
     </div>
 </div>
 
 <div class="card">
     <div class="card-body">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="crop_id" class="form-label">الصنف</label>
                     <select class="form-select" id="crop_id" name="crop_id" required>
-                        <option selected>-- اختر الصنف --</option>
+                        <option value="" selected>-- اختر الصنف --</option>
                         {% for crop in crops %}
                         <option value="{{ crop.id }}">{{ crop.name }}</option>
                         {% endfor %}
@@ -28,22 +30,63 @@
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="quantity" class="form-label">الكمية</label>
-                    <input type="number" class="form-control" id="quantity" name="quantity" step="0.01" required>
+            <div class="card border mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>بنود الفاتورة</strong>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-line-btn">
+                        <i class="bi bi-plus-circle"></i> إضافة بند
+                    </button>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="unit" class="form-label">الوحدة</label>
-                    <input type="text" class="form-control" id="unit" name="unit" required>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الجودة</th>
+                                <th>الوحدة</th>
+                                <th>الكمية</th>
+                                <th>السعر/وحدة</th>
+                                <th>الإجمالي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-lines-body"></tbody>
+                    </table>
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="price_per_unit" class="form-label">السعر لكل وحدة</label>
-                    <input type="number" class="form-control" id="price_per_unit" name="price_per_unit" step="0.01" required>
+                    <label for="discount_percent" class="form-label">خصم اختياري (%)</label>
+                    <input type="number" class="form-control" id="discount_percent" name="discount_percent" step="0.01" min="0" max="100" value="0">
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="transport_cost" class="form-label">نقل اختياري (يُخصم)</label>
+                    <input type="number" class="form-control" id="transport_cost" name="transport_cost" step="0.01" min="0" value="0">
+                </div>
+            </div>
+
+            <div class="alert alert-secondary py-2">
+                <small>
+                    <strong>ملخص سريع:</strong>
+                    قبل الخصم <span id="subtotal-preview">0</span> |
+                    قيمة الخصم <span id="discount-preview">0</span> |
+                    النقل <span id="transport-preview">0</span> |
+                    الصافي <span id="net-preview">0</span>
+                </small>
+            </div>
+
+            <div class="alert alert-light border" id="stock-status-box">
+                <div class="fw-bold mb-2">حالة الجودة المتاحة من الإنتاج:</div>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <span class="badge bg-success" id="quality-mumtaza">ممتازة: 0</span>
+                    <span class="badge bg-info" id="quality-jayeda">جيدة: 0</span>
+                    <span class="badge bg-warning text-dark" id="quality-motawasseta">متوسطة: 0</span>
+                    <span class="badge bg-danger" id="quality-monkhafeda">منخفضة: 0</span>
+                </div>
+                <small class="text-muted" id="stock-hint">اختر الصنف أولاً لعرض المتاح الحقيقي أثناء البيع.</small>
+            </div>
+
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="payment_status" class="form-label">حالة الدفع</label>
                     <select class="form-select" id="payment_status" name="payment_status">
@@ -51,27 +94,26 @@
                         <option value="غير مدفوع">غير مدفوع</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="buyer_name" class="form-label">اسم المشتري</label>
                     <input type="text" class="form-control" id="buyer_name" name="buyer_name">
                 </div>
+            </div>
+
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="buyer_phone" class="form-label">رقم المشتري</label>
                     <input type="tel" class="form-control" id="buyer_phone" name="buyer_phone">
                 </div>
-            </div>
-
-            <div class="mb-3">
-                <label for="notes" class="form-label">ملاحظات</label>
-                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                <div class="col-md-6 mb-3">
+                    <label for="notes" class="form-label">ملاحظات</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                </div>
             </div>
 
             <div class="mb-3">
                 <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-check-circle"></i> تسجيل البيع
+                    <i class="bi bi-check-circle"></i> تسجيل البيع وإصدار فاتورة واحدة
                 </button>
                 <a href="{{ url_for('sales.index') }}" class="btn btn-secondary">
                     <i class="bi bi-x-circle"></i> إلغاء
@@ -80,4 +122,225 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const cropSelect = document.getElementById('crop_id');
+    const linesBody = document.getElementById('invoice-lines-body');
+    const addLineBtn = document.getElementById('add-line-btn');
+    const stockHint = document.getElementById('stock-hint');
+    const discountInput = document.getElementById('discount_percent');
+    const transportInput = document.getElementById('transport_cost');
+    const subtotalPreview = document.getElementById('subtotal-preview');
+    const discountPreview = document.getElementById('discount-preview');
+    const transportPreview = document.getElementById('transport-preview');
+    const netPreview = document.getElementById('net-preview');
+    const saleDateInput = document.getElementById('sale_date');
+
+    const qualityLevels = ['ممتازة', 'جيدة', 'متوسطة', 'منخفضة'];
+    const qualityBadgeIds = {
+        'ممتازة': 'quality-mumtaza',
+        'جيدة': 'quality-jayeda',
+        'متوسطة': 'quality-motawasseta',
+        'منخفضة': 'quality-monkhafeda',
+    };
+
+    let currentStock = { quality_totals: [], stock_entries: [] };
+    let lineCounter = 0;
+
+    function parseNum(value) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function setQualityBadges() {
+        const defaults = {
+            'ممتازة': 0,
+            'جيدة': 0,
+            'متوسطة': 0,
+            'منخفضة': 0,
+        };
+
+        (currentStock.quality_totals || []).forEach(item => {
+            defaults[item.quality] = item.available;
+        });
+
+        Object.keys(defaults).forEach(quality => {
+            const badge = document.getElementById(qualityBadgeIds[quality]);
+            if (badge) {
+                badge.textContent = `${quality}: ${defaults[quality]}`;
+            }
+        });
+    }
+
+    function updateUnitSuggestionsForRow(row) {
+        const qualitySelect = row.querySelector('.line-quality');
+        const unitInput = row.querySelector('.line-unit');
+        const dataList = row.querySelector('datalist');
+        const selectedQuality = qualitySelect.value;
+
+        dataList.innerHTML = '';
+
+        const rows = (currentStock.stock_entries || []).filter(item => (
+            item.quality === selectedQuality && Number(item.available) > 0
+        ));
+
+        if (!rows.length) {
+            if (!unitInput.value) {
+                stockHint.textContent = `لا يوجد مخزون متاح حالياً للجودة ${selectedQuality}.`;
+            }
+            return;
+        }
+
+        rows.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.unit;
+            dataList.appendChild(opt);
+        });
+
+        const hints = rows.map(item => `${item.available} ${item.unit}`);
+        stockHint.textContent = `المتاح في الجودة ${selectedQuality}: ${hints.join(' | ')}`;
+
+        if (!rows.find(item => item.unit === unitInput.value)) {
+            unitInput.value = rows[0].unit;
+        }
+    }
+
+    function recalcLineTotal(row) {
+        const quantity = parseNum(row.querySelector('.line-quantity').value);
+        const price = parseNum(row.querySelector('.line-price').value);
+        const total = quantity * price;
+        row.querySelector('.line-total').textContent = total.toFixed(2);
+        return total;
+    }
+
+    function updateTotalsPreview() {
+        let subtotal = 0;
+        linesBody.querySelectorAll('tr').forEach(row => {
+            subtotal += recalcLineTotal(row);
+        });
+
+        const discountPercent = parseNum(discountInput.value);
+        const transport = parseNum(transportInput.value);
+        const discountAmount = subtotal * (discountPercent / 100);
+        const net = subtotal - discountAmount - transport;
+
+        subtotalPreview.textContent = subtotal.toFixed(2);
+        discountPreview.textContent = discountAmount.toFixed(2);
+        transportPreview.textContent = transport.toFixed(2);
+        netPreview.textContent = net.toFixed(2);
+    }
+
+    function addLine(defaults = {}) {
+        lineCounter += 1;
+        const row = document.createElement('tr');
+        const listId = `unit-list-${lineCounter}`;
+
+        row.innerHTML = `
+            <td>
+                <select class="form-select form-select-sm line-quality" name="line_quality[]" required>
+                    ${qualityLevels.map(q => `<option value="${q}" ${q === (defaults.quality || 'متوسطة') ? 'selected' : ''}>${q}</option>`).join('')}
+                </select>
+            </td>
+            <td>
+                <input type="text" class="form-control form-control-sm line-unit" name="line_unit[]" list="${listId}" value="${defaults.unit || ''}" required>
+                <datalist id="${listId}"></datalist>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm line-quantity" name="line_quantity[]" step="0.01" min="0.01" value="${defaults.quantity || ''}" required>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm line-price" name="line_price_per_unit[]" step="0.01" min="0" value="${defaults.price || ''}" required>
+            </td>
+            <td><strong class="line-total">0.00</strong></td>
+            <td class="text-nowrap">
+                <button type="button" class="btn btn-sm btn-outline-danger line-remove-btn" title="حذف البند">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+
+        const qualitySelect = row.querySelector('.line-quality');
+        const quantityInput = row.querySelector('.line-quantity');
+        const priceInput = row.querySelector('.line-price');
+        const removeBtn = row.querySelector('.line-remove-btn');
+
+        qualitySelect.addEventListener('change', () => {
+            updateUnitSuggestionsForRow(row);
+            updateTotalsPreview();
+        });
+
+        quantityInput.addEventListener('input', updateTotalsPreview);
+        priceInput.addEventListener('input', updateTotalsPreview);
+
+        removeBtn.addEventListener('click', () => {
+            row.remove();
+            if (!linesBody.querySelector('tr')) {
+                addLine();
+            }
+            toggleRemoveButtons();
+            updateTotalsPreview();
+        });
+
+        linesBody.appendChild(row);
+        updateUnitSuggestionsForRow(row);
+        toggleRemoveButtons();
+        updateTotalsPreview();
+    }
+
+    function toggleRemoveButtons() {
+        const rows = linesBody.querySelectorAll('tr');
+        const disableRemove = rows.length <= 1;
+        rows.forEach(row => {
+            const btn = row.querySelector('.line-remove-btn');
+            if (btn) {
+                btn.disabled = disableRemove;
+            }
+        });
+    }
+
+    function refreshAllRowsStockHints() {
+        linesBody.querySelectorAll('tr').forEach(row => updateUnitSuggestionsForRow(row));
+    }
+
+    async function loadStock() {
+        const cropId = cropSelect.value;
+        currentStock = { quality_totals: [], stock_entries: [] };
+
+        if (!cropId) {
+            setQualityBadges();
+            stockHint.textContent = 'اختر الصنف أولاً لعرض المتاح الحقيقي أثناء البيع.';
+            refreshAllRowsStockHints();
+            return;
+        }
+
+        try {
+            const res = await fetch(`{{ url_for('sales.stock_by_crop', crop_id=0) }}`.replace('/0', `/${cropId}`));
+            if (!res.ok) {
+                throw new Error('stock fetch failed');
+            }
+            currentStock = await res.json();
+            setQualityBadges();
+            refreshAllRowsStockHints();
+        } catch (e) {
+            setQualityBadges();
+            stockHint.textContent = 'تعذر تحميل بيانات المخزون حالياً.';
+        }
+    }
+
+    addLineBtn.addEventListener('click', () => addLine());
+    cropSelect.addEventListener('change', loadStock);
+    discountInput.addEventListener('input', updateTotalsPreview);
+    transportInput.addEventListener('input', updateTotalsPreview);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!saleDateInput.value) {
+            saleDateInput.value = new Date().toISOString().slice(0, 10);
+        }
+        addLine({ quality: 'متوسطة' });
+        setQualityBadges();
+        updateTotalsPreview();
+    });
+</script>
 {% endblock %}

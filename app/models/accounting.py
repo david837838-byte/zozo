@@ -50,13 +50,17 @@ class ExpenseCategory(db.Model):
     """نموذج فئات المصروفات"""
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
-    name = db.Column(db.String(120), nullable=False, unique=True)
+    name = db.Column(db.String(120), nullable=False)
     description = db.Column(db.Text, nullable=True)
     
     # Relations
     transactions = db.relationship('Transaction', backref='category', lazy=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('account_id', 'name', name='uq_expense_category_account_name'),
+    )
     
     def __repr__(self):
         return f'<ExpenseCategory {self.name}>'

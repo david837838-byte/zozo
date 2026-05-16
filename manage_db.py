@@ -60,7 +60,12 @@ def create_admin():
             can_manage_accounting=True,
             can_manage_reports=True,
             can_delete=True,
-            can_edit=True
+            can_edit=True,
+            can_use_ai_assistant=True,
+            can_view_ai_history=True,
+            can_use_ai_upload=True,
+            can_use_ai_voice=True,
+            can_view_ai_reports=True,
         )
         admin.set_password(password)
         

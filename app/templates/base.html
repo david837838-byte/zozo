@@ -265,7 +265,7 @@
                     </a>
                     {% endif %}
 
-                    {% if current_user.can_manage_production or current_user.can_manage_inventory or current_user.can_manage_reports or current_user.is_admin %}
+                    {% if current_user.can_use_ai_assistant or current_user.can_manage_workers or current_user.can_manage_production or current_user.can_manage_inventory or current_user.can_manage_sales or current_user.can_manage_accounting or current_user.can_manage_reports or current_user.is_admin %}
                     <a href="{{ url_for('ai_assistant.index') }}" class="{% if 'ai_assistant' in request.endpoint %}active{% endif %}">
                         <i class="bi bi-robot"></i> المساعد الذكي
                     </a>
@@ -321,6 +321,8 @@
     <script>
         // إخفاء رسائل النجاح تلقائياً بعد 3 ثوانٍ
         document.addEventListener('DOMContentLoaded', function() {
+            const csrfToken = '{{ csrf_token }}';
+            const stateChangingMethods = new Set(['post', 'put', 'patch', 'delete']);
             const successAlerts = document.querySelectorAll('.alert.auto-dismiss-success');
             successAlerts.forEach(function(alert) {
                 setTimeout(function() {
@@ -328,6 +330,36 @@
                     bsAlert.close();
                 }, 3000); // 3 ثوانٍ
             });
+
+            const ensureFormCsrf = function(form) {
+                if (!form) {
+                    return;
+                }
+                const method = (form.getAttribute('method') || 'get').toLowerCase();
+                if (!stateChangingMethods.has(method)) {
+                    return;
+                }
+
+                let tokenInput = form.querySelector('input[name="csrf_token"]');
+                if (!tokenInput) {
+                    tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = 'csrf_token';
+                    form.appendChild(tokenInput);
+                }
+                tokenInput.value = csrfToken;
+            };
+
+            // إضافة رمز CSRF تلقائياً لجميع النماذج التي تعدّل البيانات
+            const forms = document.querySelectorAll('form');
+            forms.forEach(function(form) {
+                ensureFormCsrf(form);
+            });
+
+            // دعم النماذج التي تُنشأ لاحقاً (داخل مودال/JS)
+            document.addEventListener('submit', function(event) {
+                ensureFormCsrf(event.target);
+            }, true);
 
             // ضمان قابلية تمرير الجداول أفقياً على الهاتف تلقائياً
             const tables = document.querySelectorAll('table.table');

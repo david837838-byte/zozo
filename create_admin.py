@@ -126,6 +126,11 @@ def main():
             can_manage_production_costs=True,
             can_manage_production_stages=True,
             can_view_analytics=True,
+            can_use_ai_assistant=True,
+            can_view_ai_history=True,
+            can_use_ai_upload=True,
+            can_use_ai_voice=True,
+            can_view_ai_reports=True,
         )
         admin.set_password(password)
 

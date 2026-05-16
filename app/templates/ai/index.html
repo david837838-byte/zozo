@@ -129,8 +129,13 @@
                                         <span class="badge bg-secondary">{{ message.backend }}</span>
                                     {% endif %}
                                 </div>
-                                <div class="small" style="white-space: pre-line;">
-                                    {{ message.text | replace('<br />', '\n') | replace('<br/>', '\n') | replace('<br>', '\n') | replace('**', '') }}
+                                <div class="small d-flex justify-content-between align-items-start gap-2" style="white-space: pre-line;">
+                                    <div class="ai-message-text flex-grow-1">{{ message.text | replace('<br />', '\n') | replace('<br/>', '\n') | replace('<br>', '\n') | replace('**', '') }}</div>
+                                    {% if message.role == 'assistant' and can_use_ai_voice %}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0 speak-assistant" title="نطق الإجابة" data-text="{{ message.text | replace('\n', ' ') | truncate(500) }}">
+                                        <i class="bi bi-volume-up"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </div>
                         {% endfor %}
@@ -267,6 +272,33 @@
     recognition.addEventListener('end', resetBtn);
     recognition.addEventListener('error', resetBtn);
 })();
+
+    // Text-to-Speech for assistant responses
+    if ('speechSynthesis' in window) {
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest && e.target.closest('.speak-assistant');
+            if (!btn) return;
+            const container = btn.closest('.mb-3');
+            const textEl = container && container.querySelector('.ai-message-text');
+            if (!textEl) return;
+            const text = textEl.innerText.trim();
+            if (!text) return;
+
+            // cancel any ongoing utterances
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'ar-SA';
+            // try to pick an Arabic voice if available
+            const voices = window.speechSynthesis.getVoices() || [];
+            for (let v of voices) {
+                if (/arab|ar-/i.test(v.lang) || /Arabic/i.test(v.name)) {
+                    utter.voice = v;
+                    break;
+                }
+            }
+            window.speechSynthesis.speak(utter);
+        });
+    }
 </script>
 {% endif %}
 {% endblock %}

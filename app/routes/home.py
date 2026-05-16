@@ -5,7 +5,7 @@ from flask_login import login_required
 from sqlalchemy import func, extract
 
 from app import db
-from app.models.accounting import EXPENSE_TRANSACTION_TYPE_ALIASES, Transaction
+from app.models.accounting import EXPENSE_TRANSACTION_TYPE_ALIASES, ExpenseCategory, Transaction
 from app.models.worker import Worker
 from app.models.crop import Crop, CropConsumption, Production, Sales
 from app.models.inventory import GeneralConsumption, InventoryItem
@@ -172,6 +172,42 @@ def dashboard():
     sales_chart_labels = [row.crop_name for row in sales_rows]
     sales_chart_values = [float(row.total_sales or 0) for row in sales_rows]
 
+    expense_category_name = func.coalesce(ExpenseCategory.name, 'غير مصنف')
+    expense_category_rows = (
+        expenses_query.outerjoin(ExpenseCategory, ExpenseCategory.id == Transaction.category_id)
+        .with_entities(
+            expense_category_name.label('category_name'),
+            func.coalesce(func.sum(Transaction.amount), 0).label('total_amount'),
+        )
+        .group_by(expense_category_name)
+        .order_by(func.coalesce(func.sum(Transaction.amount), 0).desc())
+        .limit(12)
+        .all()
+    )
+    expense_category_chart_labels = [row.category_name for row in expense_category_rows]
+    expense_category_chart_values = [float(row.total_amount or 0) for row in expense_category_rows]
+
+    monthly_expense_rows = (
+        expenses_query.with_entities(
+            extract('year', Transaction.transaction_date).label('year'),
+            extract('month', Transaction.transaction_date).label('month'),
+            func.coalesce(func.sum(Transaction.amount), 0).label('total_expenses'),
+        )
+        .group_by(
+            extract('year', Transaction.transaction_date),
+            extract('month', Transaction.transaction_date),
+        )
+        .order_by(
+            extract('year', Transaction.transaction_date).asc(),
+            extract('month', Transaction.transaction_date).asc(),
+        )
+        .all()
+    )
+    monthly_expense_chart_labels = [
+        f"{int(row.year):04d}-{int(row.month):02d}" for row in monthly_expense_rows
+    ]
+    monthly_expense_chart_values = [float(row.total_expenses or 0) for row in monthly_expense_rows]
+
     production_year_rows = (
         db.session.query(extract('year', Production.production_date).label('year'))
         .filter(Production.production_date.isnot(None))
@@ -277,6 +313,10 @@ def dashboard():
         yearly_production_chart_values=yearly_production_chart_values,
         sales_chart_labels=sales_chart_labels,
         sales_chart_values=sales_chart_values,
+        expense_category_chart_labels=expense_category_chart_labels,
+        expense_category_chart_values=expense_category_chart_values,
+        monthly_expense_chart_labels=monthly_expense_chart_labels,
+        monthly_expense_chart_values=monthly_expense_chart_values,
         medicine_chart_labels=medicine_chart_labels,
         medicine_chart_qty_values=medicine_chart_qty_values,
         medicine_chart_cost_values=medicine_chart_cost_values,

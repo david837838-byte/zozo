@@ -12,8 +12,11 @@ from sqlalchemy import func
 from app import db
 from app.models.app_setting import AppSetting
 from app.models.ai_chat import AIConversation, AIConversationMessage
-from app.models.crop import CropConsumption, CropHealth
+from app.models.crop import CropConsumption, CropHealth, Production, Sales
 from app.models.inventory import GeneralConsumption, InventoryItem
+from app.models.worker import Worker, WorkLog, Attendance, MonthlyAttendance
+from app.models.accounting import Transaction, ExpenseCategory
+from app.models.motor import Motor
 
 bp = Blueprint("ai_assistant", __name__, url_prefix="/ai")
 
@@ -233,6 +236,20 @@ _GENERAL_TOPICS = [
     },
 ]
 
+_WORKER_KEYWORDS = (
+    "عامل",
+    "عمال",
+    "موظف",
+    "موظفين",
+    "حضور",
+    "ساعات",
+    "راتب",
+    "مرتب",
+    "قبض",
+    "رصيد",
+)
+
+
 _TYPE_BY_ID = {item["id"]: item for item in _MEDICINE_TYPE_CATALOG}
 
 
@@ -284,9 +301,472 @@ def _is_medicine_category(category):
     return _contains_any(category, _MEDICINE_KEYWORDS)
 
 
+# ============================================================================
+# متقدم: دعم الأقسام المتعددة والبيانات المحسنة
+# Advanced: Multi-Department Support & Enhanced Analytics
+# ============================================================================
+
+def _collect_worker_details(account_id):
+    """جمع تفاصيل العمال والراتب والرصيد - Enhanced worker data"""
+    workers = Worker.query.filter_by(account_id=account_id, is_active=True).all()
+    worker_stats = []
+    
+    for worker in workers:
+        # Calculate total hours and recent hours
+        total_hours = db.session.query(func.coalesce(func.sum(WorkLog.hours), 0)).filter(
+            WorkLog.worker_id == worker.id,
+            WorkLog.account_id == account_id
+        ).scalar() or 0.0
+        
+        from_date = date.today() - timedelta(days=30)
+        recent_hours = db.session.query(func.coalesce(func.sum(WorkLog.hours), 0)).filter(
+            WorkLog.worker_id == worker.id,
+            WorkLog.account_id == account_id,
+            WorkLog.work_date >= from_date
+        ).scalar() or 0.0
+        
+        # Get salary information
+        monthly = MonthlyAttendance.query.filter_by(
+            worker_id=worker.id,
+            account_id=account_id
+        ).order_by(MonthlyAttendance.year.desc(), MonthlyAttendance.month.desc()).first()
+        
+        net_salary = 0
+        balance = 0
+        if monthly:
+            net_salary = float(monthly.net_salary or 0)
+            # Calculate balance from transactions
+            transactions = Transaction.query.filter(
+                Transaction.account_id == account_id,
+                Transaction.reference_type == "عامل",
+                Transaction.reference_id == worker.id
+            ).all()
+            
+            total_earned = 0
+            total_paid = 0
+            for t in transactions:
+                if t.transaction_type == "دخل":
+                    total_earned += t.amount
+                else:
+                    total_paid += t.amount
+            balance = total_earned - total_paid
+        
+        worker_stats.append({
+            "id": worker.id,
+            "name": worker.name,
+            "total_hours": float(total_hours),
+            "recent_30d_hours": float(recent_hours),
+            "hourly_rate": float(worker.hourly_rate or 0),
+            "monthly_salary": float(worker.monthly_salary or 0),
+            "is_monthly": bool(worker.is_monthly),
+            "net_salary": net_salary,
+            "balance": round(balance, 2),
+            "phone": worker.phone or "",
+        })
+    
+    return worker_stats
+
+
+def _collect_accounting_summary(account_id):
+    """جمع ملخص المحاسبة والمصروفات - Accounting summary"""
+    today = date.today()
+    month_start = today.replace(day=1)
+    
+    # Current month transactions
+    current_month_transactions = Transaction.query.filter(
+        Transaction.account_id == account_id,
+        Transaction.transaction_date >= month_start
+    ).all()
+    
+    current_income = sum(t.amount for t in current_month_transactions if t.transaction_type == "دخل")
+    current_expenses = sum(t.amount for t in current_month_transactions if t.transaction_type == "مصروف")
+    
+    # Last 30 days
+    from_date = today - timedelta(days=30)
+    last_30_transactions = Transaction.query.filter(
+        Transaction.account_id == account_id,
+        Transaction.transaction_date >= from_date
+    ).all()
+    
+    last_30_income = sum(t.amount for t in last_30_transactions if t.transaction_type == "دخل")
+    last_30_expenses = sum(t.amount for t in last_30_transactions if t.transaction_type == "مصروف")
+    
+    # Get top expense categories
+    categories_spending = {}
+    for t in last_30_transactions:
+        if t.transaction_type == "مصروف":
+            cat_name = t.category.name if t.category else "بدون تصنيف"
+            categories_spending[cat_name] = categories_spending.get(cat_name, 0) + t.amount
+    
+    top_categories = sorted(categories_spending.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    return {
+        "current_month": {
+            "income": round(current_income, 2),
+            "expenses": round(current_expenses, 2),
+            "net": round(current_income - current_expenses, 2)
+        },
+        "last_30_days": {
+            "income": round(last_30_income, 2),
+            "expenses": round(last_30_expenses, 2),
+            "net": round(last_30_income - last_30_expenses, 2),
+            "avg_daily_expense": round(last_30_expenses / 30, 2) if last_30_expenses else 0
+        },
+        "top_expenses": [{"category": cat, "amount": round(amt, 2)} for cat, amt in top_categories]
+    }
+
+
+def _collect_inventory_summary(account_id):
+    """جمع ملخص المخزون - Inventory summary"""
+    items = InventoryItem.query.filter_by(account_id=account_id).all()
+    
+    total_items = len(items)
+    out_of_stock = sum(1 for item in items if item.quantity <= 0)
+    low_stock = sum(1 for item in items if 0 < item.quantity <= 5)
+    
+    total_value = sum(item.quantity * item.purchase_price for item in items)
+    
+    # Expiring items (next 30 days)
+    today = date.today()
+    expiry_limit = today + timedelta(days=30)
+    expiring = [item for item in items if item.expiry_date and item.expiry_date <= expiry_limit]
+    
+    return {
+        "total_items": total_items,
+        "out_of_stock": out_of_stock,
+        "low_stock": low_stock,
+        "total_value": round(total_value, 2),
+        "expiring_soon": len(expiring),
+        "expiring_items": [
+            {"name": item.name, "expiry": item.expiry_date.strftime("%Y-%m-%d")}
+            for item in expiring[:5]
+        ]
+    }
+
+
+def _collect_motors_summary(account_id):
+    """جمع ملخص المحركات - Motors summary"""
+    motors = Motor.query.filter_by(account_id=account_id, is_active=True).all()
+    
+    total_motors = len(motors)
+    motor_types = {}
+    
+    for motor in motors:
+        motor_type = motor.motor_type or "غير محدد"
+        motor_types[motor_type] = motor_types.get(motor_type, 0) + 1
+    
+    return {
+        "total_active": total_motors,
+        "types": [{"type": t, "count": c} for t, c in motor_types.items()]
+    }
+
+
+def _collect_sales_summary(account_id):
+    """جمع ملخص المبيعات - Sales summary"""
+    today = date.today()
+    from_date = today - timedelta(days=30)
+
+    sales_rows = Sales.query.filter_by(account_id=account_id).all()
+    recent_sales = [row for row in sales_rows if row.sale_date and row.sale_date >= from_date]
+
+    total_count = len(sales_rows)
+    total_revenue = sum(float(row.net_total()) for row in sales_rows)
+    last_30_revenue = sum(float(row.net_total()) for row in recent_sales)
+
+    quality_breakdown = {}
+    for row in sales_rows:
+        quality = (row.quality or "متوسطة").strip() or "متوسطة"
+        quality_breakdown[quality] = quality_breakdown.get(quality, 0) + float(row.quantity or 0)
+
+    top_buyers = {}
+    for row in recent_sales:
+        buyer = (row.buyer_name or "بدون اسم").strip() or "بدون اسم"
+        top_buyers[buyer] = top_buyers.get(buyer, 0) + float(row.net_total())
+    top_buyers_rows = sorted(top_buyers.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    return {
+        "total_sales_count": total_count,
+        "total_revenue": round(total_revenue, 2),
+        "last_30_revenue": round(last_30_revenue, 2),
+        "quality_breakdown": [{"quality": q, "quantity": round(v, 2)} for q, v in quality_breakdown.items()],
+        "top_buyers": [{"buyer": name, "revenue": round(value, 2)} for name, value in top_buyers_rows],
+    }
+
+
+def _collect_production_summary(account_id):
+    """جمع ملخص الإنتاج - Production summary"""
+    today = date.today()
+    from_date = today - timedelta(days=30)
+
+    production_rows = Production.query.filter_by(account_id=account_id).all()
+    recent_production = [row for row in production_rows if row.production_date and row.production_date >= from_date]
+
+    total_production_qty = sum(float(row.quantity or 0) for row in production_rows)
+    last_30_qty = sum(float(row.quantity or 0) for row in recent_production)
+
+    quality_breakdown = {}
+    for row in production_rows:
+        quality = (row.quality or "متوسطة").strip() or "متوسطة"
+        quality_breakdown[quality] = quality_breakdown.get(quality, 0) + float(row.quantity or 0)
+
+    return {
+        "total_records": len(production_rows),
+        "total_quantity": round(total_production_qty, 2),
+        "last_30_quantity": round(last_30_qty, 2),
+        "quality_breakdown": [{"quality": q, "quantity": round(v, 2)} for q, v in quality_breakdown.items()],
+    }
+
+
+def _collect_comprehensive_analytics(account_id):
+    """جمع تحليلات شاملة من جميع الأقسام"""
+    today = date.today()
+    
+    # Basic agricultural analytics (existing)
+    health_analytics = _collect_ai_analytics()
+    
+    # Worker data
+    workers_data = _collect_worker_details(account_id)
+    
+    # Accounting data
+    accounting_data = _collect_accounting_summary(account_id)
+    
+    # Inventory data
+    inventory_data = _collect_inventory_summary(account_id)
+    
+    # Motors data
+    motors_data = _collect_motors_summary(account_id)
+    
+    # Sales & production data
+    sales_data = _collect_sales_summary(account_id)
+    production_data = _collect_production_summary(account_id)
+    
+    return {
+        "agriculture": health_analytics,
+        "workers": workers_data,
+        "accounting": accounting_data,
+        "inventory": inventory_data,
+        "motors": motors_data,
+        "sales": sales_data,
+        "production": production_data,
+    }
+
+
+def _text_to_speech_available():
+    """Check if text-to-speech is configured"""
+    return True  # Use browser-based Web Speech API
+
+
+# ============================================================================
+# محسنات البحث والاستعلام - Enhanced Query Handlers
+# ============================================================================
+
+def _detect_extended_intent(question):
+    """Detect intent across all departments"""
+    intent = _detect_intent(question)
+    
+    if _contains_any(question, ("مبيعات", "بيع", "فاتورة", "عميل", "مشتري")):
+        return "sales"
+    
+    if _contains_any(question, ("إنتاج", "انتاج", "محصول", "جودة", "حصاد")):
+        return "production"
+    
+    # Check for new department-specific queries
+    if _contains_any(question, ("راتب", "رصيد", "قبض", "باقي", "استحقاق", "دفع")):
+        return "worker_salary"
+    
+    if _contains_any(question, ("مصروف", "دخل", "حساب", "ميزانية")):
+        return "accounting"
+    
+    if _contains_any(question, ("مخزون", "تخزين", "كمية", "نفاد", "توفر")):
+        return "inventory"
+    
+    if _contains_any(question, ("محرك", "ديزل", "بنزين", "مضخة")):
+        return "motors"
+    
+    return intent
+
+
+def _build_worker_salary_answer(question, comprehensive_analytics, history=None):
+    """Build answer about worker salary and balance"""
+    workers_data = comprehensive_analytics.get("workers", [])
+    
+    if not workers_data:
+        return "لا توجد بيانات عمال متاحة في النظام."
+    
+    # Try to find specific worker
+    matched = _resolve_worker_from_history(question, history)
+    
+    if not matched:
+        # No worker found - show available workers as suggestions
+        worker_names = [w["name"] for w in workers_data[:8]]
+        names_str = " | ".join(worker_names)
+        
+        return (
+            f"🤔 لم أتمكن من تحديد العامل المقصود.\n\n"
+            f"👥 الأسماء المتاحة:\n{names_str}\n\n"
+            f"💡 جرب أحد الأسئلة:\n"
+            f"- راتب {workers_data[0]['name']}\n"
+            f"- كم رصيد {workers_data[0]['name']}؟\n"
+            f"- ما استحقاق {workers_data[0]['name']}؟"
+        )
+    
+    worker = matched[0]
+    worker_info = next((w for w in workers_data if w["id"] == worker.id), None)
+    
+    if not worker_info:
+        return f"لم أتمكن من العثور على بيانات العامل {worker.name}."
+    
+    lines = [f"💰 معلومات الراتب والرصيد للعامل: {worker_info['name']}"]
+    lines.append("=" * 60)
+    
+    if worker_info["is_monthly"]:
+        lines.append(f"📋 نوع الاستحقاق: شهري")
+        lines.append(f"💵 الراتب الشهري المسجل: {worker_info['monthly_salary']} ل.س")
+    else:
+        lines.append(f"⏰ نوع الاستحقاق: بالساعة")
+        lines.append(f"💵 السعر/الساعة: {worker_info['hourly_rate']} ل.س")
+    
+    lines.append("")
+    lines.append(f"⏱️ إجمالي الساعات (كل الوقت): {worker_info['total_hours']} ساعة")
+    lines.append(f"📅 الساعات (آخر 30 يوم): {worker_info['recent_30d_hours']} ساعة")
+    lines.append(f"💲 الراتب الصافي الأخير: {worker_info['net_salary']} ل.س")
+    
+    lines.append("")
+    lines.append(f"💳 الرصيد الحالي: {worker_info['balance']} ل.س")
+    if worker_info['balance'] > 0:
+        lines.append(f"✅ للعامل حق قبض: {abs(worker_info['balance'])} ل.س")
+    elif worker_info['balance'] < 0:
+        lines.append(f"⚠️ على العامل دين: {abs(worker_info['balance'])} ل.س")
+    else:
+        lines.append("✓ الحساب مسدد")
+    
+    return "\n".join(lines)
+
+
+def _build_accounting_answer(question, comprehensive_analytics):
+    """Build answer about accounting and finances"""
+    accounting = comprehensive_analytics.get("accounting", {})
+    
+    lines = ["ملخص الحالة المحاسبية:"]
+    lines.append("=" * 50)
+    
+    current = accounting.get("current_month", {})
+    last_30 = accounting.get("last_30_days", {})
+    
+    lines.append(f"الشهر الحالي:")
+    lines.append(f"  الدخل: {current.get('income', 0)} ل.س")
+    lines.append(f"  المصروفات: {current.get('expenses', 0)} ل.س")
+    lines.append(f"  الصافي: {current.get('net', 0)} ل.س")
+    
+    lines.append(f"\nآخر 30 يوم:")
+    lines.append(f"  الدخل: {last_30.get('income', 0)} ل.س")
+    lines.append(f"  المصروفات: {last_30.get('expenses', 0)} ل.س")
+    lines.append(f"  الصافي: {last_30.get('net', 0)} ل.س")
+    lines.append(f"  متوسط يومي: {last_30.get('avg_daily_expense', 0)} ل.س")
+    
+    top_expenses = accounting.get("top_expenses", [])
+    if top_expenses:
+        lines.append(f"\nأعلى المصروفات (آخر 30 يوم):")
+        for item in top_expenses:
+            lines.append(f"  • {item['category']}: {item['amount']} ل.س")
+    
+    return "\n".join(lines)
+
+
+def _build_inventory_answer(question, comprehensive_analytics):
+    """Build answer about inventory status"""
+    inventory = comprehensive_analytics.get("inventory", {})
+    
+    lines = ["حالة المخزون الحالية:"]
+    lines.append("=" * 50)
+    
+    lines.append(f"إجمالي الأصناف: {inventory.get('total_items', 0)}")
+    lines.append(f"نافدة (صفر): {inventory.get('out_of_stock', 0)}")
+    lines.append(f"منخفضة (≤5): {inventory.get('low_stock', 0)}")
+    lines.append(f"القيمة الإجمالية: {inventory.get('total_value', 0)} ل.س")
+    lines.append(f"الأصناف قريبة الانتهاء (30 يوم): {inventory.get('expiring_soon', 0)}")
+    
+    expiring = inventory.get("expiring_items", [])
+    if expiring:
+        lines.append(f"\nأصناف قريبة الانتهاء:")
+        for item in expiring:
+            lines.append(f"  • {item['name']} - {item['expiry']}")
+    
+    lines.append("\nالإجراء المقترح: راجع الأصناف النافدة والمنخفضة وأنشئ طلبيات شراء.")
+    
+    return "\n".join(lines)
+
+
+def _build_motors_answer(question, comprehensive_analytics):
+    """Build answer about motors and equipment"""
+    motors = comprehensive_analytics.get("motors", {})
+    
+    lines = ["ملخص المحركات والمعدات:"]
+    lines.append("=" * 50)
+    
+    lines.append(f"عدد المحركات النشطة: {motors.get('total_active', 0)}")
+    
+    motor_types = motors.get("types", [])
+    if motor_types:
+        lines.append(f"\nأنواع المحركات:")
+        for item in motor_types:
+            lines.append(f"  • {item['type']}: {item['count']}")
+    
+    return "\n".join(lines)
+
+
+def _build_sales_answer(question, comprehensive_analytics):
+    """Build answer about sales performance and quality."""
+    sales = comprehensive_analytics.get("sales", {})
+
+    lines = ["ملخص المبيعات:"]
+    lines.append("=" * 50)
+    lines.append(f"عدد عمليات البيع الكلي: {sales.get('total_sales_count', 0)}")
+    lines.append(f"إجمالي الإيراد: {sales.get('total_revenue', 0)}")
+    lines.append(f"إيراد آخر 30 يوم: {sales.get('last_30_revenue', 0)}")
+
+    quality_rows = sales.get("quality_breakdown", [])
+    if quality_rows:
+        lines.append("\nتوزيع المبيعات حسب الجودة:")
+        for item in quality_rows:
+            lines.append(f"  • {item['quality']}: {item['quantity']}")
+
+    top_buyers = sales.get("top_buyers", [])
+    if top_buyers:
+        lines.append("\nأعلى المشترين (آخر 30 يوم):")
+        for row in top_buyers:
+            lines.append(f"  • {row['buyer']}: {row['revenue']}")
+
+    lines.append("\nالإجراء المقترح: راقب جودة البيع الأقل أداءً واربطها بخطة تحسين فرز وتعبئة.")
+    return "\n".join(lines)
+
+
+def _build_production_answer(question, comprehensive_analytics):
+    """Build answer about production and quality."""
+    production = comprehensive_analytics.get("production", {})
+
+    lines = ["ملخص الإنتاج:"]
+    lines.append("=" * 50)
+    lines.append(f"عدد سجلات الإنتاج: {production.get('total_records', 0)}")
+    lines.append(f"إجمالي الكمية المنتجة: {production.get('total_quantity', 0)}")
+    lines.append(f"إنتاج آخر 30 يوم: {production.get('last_30_quantity', 0)}")
+
+    quality_rows = production.get("quality_breakdown", [])
+    if quality_rows:
+        lines.append("\nتوزيع الإنتاج حسب الجودة:")
+        for item in quality_rows:
+            lines.append(f"  • {item['quality']}: {item['quantity']}")
+
+    lines.append("\nالإجراء المقترح: زد المتابعة للأصناف ذات الجودة المنخفضة لتقليل الهدر ورفع الربحية.")
+    return "\n".join(lines)
+
+
 def _legacy_ai_access():
     return bool(
         current_user.is_admin
+        or getattr(current_user, "can_manage_workers", False)
+        or getattr(current_user, "can_manage_sales", False)
+        or getattr(current_user, "can_manage_accounting", False)
         or getattr(current_user, "can_manage_production", False)
         or getattr(current_user, "can_manage_inventory", False)
         or getattr(current_user, "can_manage_reports", False)
@@ -329,7 +809,7 @@ def _can_view_ai_reports():
     return bool(
         current_user.is_admin
         or getattr(current_user, "can_view_ai_reports", False)
-        or getattr(current_user, "can_manage_reports", False)
+        or _can_use_ai_assistant()
     )
 
 
@@ -1058,6 +1538,10 @@ def _expand_question_with_context(user_question, history):
 
 
 def _detect_intent(question):
+    # worker-related
+    if _contains_any(question, _WORKER_KEYWORDS):
+        return "worker"
+
     has_analysis = _contains_any(question, _ANALYSIS_KEYWORDS)
     has_disease = (
         _contains_any(question, _DISEASE_KEYWORDS)
@@ -1200,6 +1684,240 @@ def _find_general_topics(question):
                 matches.append(topic)
                 break
     return matches
+
+
+def _find_worker_by_question(question):
+    """Enhanced worker name detection with better matching algorithm"""
+    normalized = _normalize_text(question)
+    question_tokens = set(_tokenize(question))
+    account_id = _current_account_id()
+    
+    try:
+        candidates = Worker.query.filter(Worker.account_id == account_id).all()
+    except Exception:
+        return []
+    
+    # Score-based matching system
+    scored = []
+    for w in candidates:
+        name_norm = _normalize_text(w.name or "")
+        if not name_norm:
+            continue
+        
+        score = 0
+        
+        # Exact name match in text
+        if name_norm == normalized:
+            score += 1000
+        
+        # Name is substring of question
+        if name_norm in normalized:
+            score += 500
+        
+        # Token-based matching (word by word)
+        name_tokens = set(_tokenize(w.name or ""))
+        common_tokens = name_tokens.intersection(question_tokens)
+        if common_tokens:
+            score += len(common_tokens) * 100
+        
+        # Partial name matching (first name or last name)
+        name_parts = (w.name or "").split()
+        for part in name_parts:
+            part_norm = _normalize_text(part)
+            if len(part_norm) > 2 and part_norm in normalized:
+                score += 200
+            elif len(part_norm) > 2 and part_norm == normalized:
+                score += 300
+        
+        if score > 0:
+            scored.append((score, w))
+    
+    # Sort by score descending and return only workers with meaningful matches
+    scored.sort(key=lambda x: x[0], reverse=True)
+    
+    # Return highest scored matches
+    if scored:
+        best_score = scored[0][0]
+        # Return all workers with score at least 50% of best score
+        threshold = max(best_score * 0.5, 100)
+        return [w for score, w in scored if score >= threshold]
+    
+    return []
+
+
+def _resolve_worker_from_history(question, history):
+    """Resolve worker from current question or recent history with better logic"""
+    # Try to find worker name in the current question first
+    found = _find_worker_by_question(question)
+    if found:
+        return found
+
+    # Search most recent user messages for a worker name (last 6 messages)
+    if isinstance(history, list):
+        recent_messages = []
+        for entry in reversed(history):
+            if entry.get('role') != 'user' or not entry.get('text'):
+                continue
+            recent_messages.append(entry)
+            if len(recent_messages) >= 6:
+                break
+        
+        # Score context messages by recency (most recent = highest priority)
+        for idx, entry in enumerate(recent_messages):
+            found = _find_worker_by_question(entry.get('text'))
+            if found:
+                return found
+
+    # Check for any single-word question that might be a worker name
+    question_lower = _normalize_text(question)
+    tokens = _tokenize(question)
+    if len(tokens) <= 3:  # Short question, likely a name query
+        # Try matching each token as potential worker name
+        account_id = _current_account_id()
+        try:
+            workers = Worker.query.filter(Worker.account_id == account_id, Worker.is_active == True).all()
+        except Exception:
+            workers = []
+        
+        for token in tokens:
+            for worker in workers:
+                if _normalize_text(worker.name or "").startswith(token) or token in _normalize_text(worker.name or ""):
+                    return [worker]
+
+    # Fallback: if the account has exactly one active worker, assume it
+    account_id = _current_account_id()
+    try:
+        workers = Worker.query.filter(Worker.account_id == account_id, Worker.is_active == True).all()
+    except Exception:
+        workers = []
+    if len(workers) == 1:
+        return workers
+
+    return []
+
+
+def _collect_worker_stats(worker):
+    account_id = _current_account_id()
+    # total hours (all time)
+    total_hours = (
+        db.session.query(func.coalesce(func.sum(WorkLog.hours), 0))
+        .filter(WorkLog.worker_id == worker.id, WorkLog.account_id == account_id)
+        .scalar()
+        or 0.0
+    )
+
+    # last 30 days hours
+    from datetime import date, timedelta
+
+    from_date = date.today() - timedelta(days=30)
+    recent_hours = (
+        db.session.query(func.coalesce(func.sum(WorkLog.hours), 0))
+        .filter(WorkLog.worker_id == worker.id, WorkLog.account_id == account_id, WorkLog.work_date >= from_date)
+        .scalar()
+        or 0.0
+    )
+
+    # latest monthly attendance record
+    monthly = (
+        MonthlyAttendance.query.filter_by(worker_id=worker.id, account_id=account_id)
+        .order_by(MonthlyAttendance.year.desc(), MonthlyAttendance.month.desc())
+        .first()
+    )
+
+    latest_month_summary = None
+    if monthly:
+        latest_month_summary = {
+            "year": monthly.year,
+            "month": monthly.month,
+            "total_hours": float(monthly.total_hours or 0.0),
+            "net_salary": float(monthly.net_salary or 0.0),
+            "overtime_hours": float(monthly.overtime_hours or 0.0),
+            "deductions": float(monthly.deductions or 0.0),
+            "bonuses": float(monthly.bonuses or 0.0),
+        }
+
+    return {
+        "worker_id": worker.id,
+        "name": worker.name,
+        "is_monthly": bool(worker.is_monthly),
+        "hourly_rate": float(worker.hourly_rate or 0.0),
+        "monthly_salary": float(worker.monthly_salary or 0.0),
+        "total_hours": float(total_hours),
+        "recent_30d_hours": float(recent_hours),
+        "latest_month": latest_month_summary,
+    }
+
+
+def _build_worker_answer(question, analytics, history=None):
+    matched = _resolve_worker_from_history(question, history)
+    
+    # If no worker found, provide helpful suggestions
+    if not matched:
+        account_id = _current_account_id()
+        try:
+            all_workers = Worker.query.filter(
+                Worker.account_id == account_id, 
+                Worker.is_active == True
+            ).all()
+        except Exception:
+            all_workers = []
+        
+        if not all_workers:
+            return "لا توجد بيانات عمال في النظام حالياً."
+        
+        # Show available workers as suggestions
+        worker_names = [w.name for w in all_workers[:10]]
+        names_str = " | ".join(worker_names)
+        
+        return (
+            f"لم أتمكن من تحديد العامل المقصود.\n\n"
+            f"😊 اسماء العمال المتاحة:\n{names_str}\n\n"
+            f"💡 جرب أحد الأسئلة:\n"
+            f"- كم ساعة {all_workers[0].name}؟\n"
+            f"- ما راتب {all_workers[0].name}؟\n"
+            f"- ما الرصيد {all_workers[0].name}؟"
+        )
+
+    worker = matched[0]
+    stats = _collect_worker_stats(worker)
+    
+    lines = [f"📋 معلومات عن العامل: {stats['name']}"]
+    lines.append("=" * 50)
+    
+    if stats["is_monthly"]:
+        lines.append(f"💼 نوع الاستحقاق: شهري")
+        lines.append(f"💰 الراتب الشهري المسجل: {stats['monthly_salary']} ل.س")
+    else:
+        lines.append(f"⏰ نوع الاستحقاق: بالأجر بالساعة")
+        lines.append(f"💵 السعر الحالي للساعة: {stats['hourly_rate']} ل.س")
+
+    lines.append("")
+    lines.append(f"⏱️ إجمالي الساعات المسجلة: {stats['total_hours']} ساعة")
+    lines.append(f"📅 ساعات آخر 30 يومًا: {stats['recent_30d_hours']} ساعة")
+
+    if stats.get("latest_month"):
+        lm = stats["latest_month"]
+        lines.append("")
+        lines.append(f"📊 ملخص الشهر الأخير ({lm['year']}/{lm['month']}):")
+        lines.append(f"   • إجمالي ساعات: {lm['total_hours']} ساعة")
+        lines.append(f"   • صافي الأجر: {lm['net_salary']} ل.س")
+        lines.append(f"   • ساعات إضافية: {lm['overtime_hours']} ساعة")
+        lines.append(f"   • خصومات: {lm['deductions']} ل.س")
+        lines.append(f"   • مكافآت: {lm['bonuses']} ل.س")
+    else:
+        lines.append("")
+        lines.append("⚠️ لا توجد بيانات ملخص شهري متاحة لهذا العامل.")
+
+    lines.append("")
+    lines.append(f"💳 الرصيد الحالي: {stats.get('balance', 0)} ل.س")
+    if stats.get('balance', 0) > 0:
+        lines.append(f"✅ للعامل حق قبض: {abs(stats.get('balance', 0))} ل.س")
+    elif stats.get('balance', 0) < 0:
+        lines.append(f"⚠️ على العامل دين: {abs(stats.get('balance', 0))} ل.س")
+    else:
+        lines.append("✓ الحساب مسدد")
+    
+    return "\n".join(lines)
 
 
 def _medicine_candidates_by_type(analytics, type_ids):
@@ -1463,8 +2181,10 @@ def _build_general_agri_answer(question, analytics):
 
 def _build_local_expert_answer(user_question, analytics, history, image_context=None):
     effective_question = _expand_question_with_context(user_question, history)
-    intent = _detect_intent(effective_question)
-    has_inventory_match = bool(_match_inventory_medicines(effective_question, analytics))
+    
+    # Use extended intent detection for multi-department support
+    intent = _detect_extended_intent(effective_question)
+    has_inventory_match = bool(_match_inventory_medicines(effective_question, analytics.get("agriculture", {})))
 
     if intent == "general" and has_inventory_match:
         intent = "medicine_usage"
@@ -1474,29 +2194,51 @@ def _build_local_expert_answer(user_question, analytics, history, image_context=
             "تم استلام الصورة، لكن المحرك المحلي لا ينفذ رؤية حاسوبية مباشرة.",
             "اكتب الأعراض الظاهرة (لون البقع، مكانها، سرعة الانتشار) وسأعطيك تشخيصًا أوليًا أدق.",
         ]
-        return "\n".join(prefix + [_build_disease_answer(effective_question, analytics)])
+        ag_analytics = analytics.get("agriculture", {})
+        return "\n".join(prefix + [_build_disease_answer(effective_question, ag_analytics)])
 
+    ag_analytics = analytics.get("agriculture", {})
+    
+    # Handle new department intents
+    if intent == "worker_salary":
+        return _build_worker_salary_answer(effective_question, analytics, history=history)
+    if intent == "sales":
+        return _build_sales_answer(effective_question, analytics)
+    if intent == "production":
+        return _build_production_answer(effective_question, analytics)
+    if intent == "accounting":
+        return _build_accounting_answer(effective_question, analytics)
+    if intent == "inventory":
+        return _build_inventory_answer(effective_question, analytics)
+    if intent == "motors":
+        return _build_motors_answer(effective_question, analytics)
+    
+    # Handle existing agricultural intents
     if intent == "weekly_report":
-        return _build_weekly_report_answer(analytics)
+        return _build_weekly_report_answer(ag_analytics)
     if intent == "medicine_compare":
-        return _build_medicine_comparison_answer(effective_question, analytics)
+        return _build_medicine_comparison_answer(effective_question, ag_analytics)
     if intent == "weekly_plan":
-        return _build_weekly_plan_answer(effective_question, analytics)
+        return _build_weekly_plan_answer(effective_question, ag_analytics)
     if intent == "alerts":
-        return _build_alerts_answer(analytics)
+        return _build_alerts_answer(ag_analytics)
     if intent == "analysis":
-        return _build_analysis_answer(analytics)
+        return _build_analysis_answer(ag_analytics)
     if intent == "medicine_types":
-        return _build_medicine_types_answer(effective_question, analytics)
+        return _build_medicine_types_answer(effective_question, ag_analytics)
     if intent == "medicine_usage":
-        return _build_medicine_usage_answer(effective_question, analytics)
+        return _build_medicine_usage_answer(effective_question, ag_analytics)
     if intent == "disease":
-        return _build_disease_answer(effective_question, analytics)
-    return _build_general_agri_answer(effective_question, analytics)
+        return _build_disease_answer(effective_question, ag_analytics)
+    if intent == "worker":
+        return _build_worker_answer(effective_question, ag_analytics, history=history)
+    return _build_general_agri_answer(effective_question, ag_analytics)
 
 
 def _generate_answer(user_question, analytics, history, image_context=None):
-    prompt = _build_prompt(user_question, analytics, history, image_context=image_context)
+    # Build prompt using agricultural analytics
+    ag_analytics = analytics.get("agriculture", {}) if isinstance(analytics, dict) else analytics
+    prompt = _build_prompt(user_question, ag_analytics, history, image_context=image_context)
     config = _effective_remote_config()
     provider = config["provider"]
 
@@ -1589,7 +2331,10 @@ def index():
     if guard_response:
         return guard_response
 
-    analytics = _collect_ai_analytics()
+    account_id = _current_account_id()
+    analytics = _collect_comprehensive_analytics(account_id)
+    ag_analytics = analytics.get("agriculture", {})
+    
     chat_history = _read_history()
     chat_history_top = list(reversed(chat_history))
     ai_mode = _describe_ai_mode(_effective_remote_config())
@@ -1599,7 +2344,8 @@ def index():
 
     return render_template(
         "ai/index.html",
-        analytics=analytics,
+        analytics=ag_analytics,
+        comprehensive_analytics=analytics,
         chat_history=chat_history,
         chat_history_top=chat_history_top,
         ai_mode=ai_mode,
@@ -1632,7 +2378,8 @@ def ask():
     if not user_question and image_context:
         user_question = "حلل الصورة المرفقة وقدم تشخيصا مبدئيا."
 
-    analytics = _collect_ai_analytics()
+    account_id = _current_account_id()
+    analytics = _collect_comprehensive_analytics(account_id)
     history = _read_history()
     answer, backend_used, fallback_reason = _generate_answer(
         user_question,
@@ -1726,3 +2473,39 @@ def weekly_report():
         analytics=analytics,
         auto_summary=auto_summary,
     )
+
+
+@bp.route("/api/tts", methods=["POST"])
+@login_required
+def tts_api():
+    """Text-to-Speech API endpoint - تحويل النص إلى كلام"""
+    guard_response = _guard_access()
+    if guard_response:
+        return guard_response
+    
+    if not _can_use_ai_voice():
+        return {"error": "ليس لديك صلاحية استخدام ميزة التحويل لصوت"}, 403
+    
+    data = request.get_json() or {}
+    text = (data.get("text") or "").strip()
+    
+    if not text:
+        return {"error": "النص مفقود"}, 400
+    
+    if len(text) > 5000:
+        return {"error": "النص طويل جدا (الحد الأقصى 5000 حرف)"}, 400
+    
+    try:
+        # Use Google Translate API or pyttsx3 for Arabic TTS
+        import urllib.parse
+        
+        # Create a simple workaround using browser Web Speech API
+        # The client will handle the actual TTS
+        return {
+            "success": True,
+            "text": text,
+            "language": "ar-SA",
+            "message": "استخدم Web Speech API بدعم العربية"
+        }, 200
+    except Exception as e:
+        return {"error": f"خطأ في معالجة النص: {str(e)}"}, 500
