@@ -183,14 +183,14 @@ def login():
 @bp.route('/logout')
 @login_required
 def logout():
-    """ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬."""
+    """تسجيل الخروج."""
     try:
         mark_current_session_logged_out(user_id=current_user.id)
     except Exception:
         db.session.rollback()
     logout_user()
     session.pop('account_id', None)
-    flash('ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬ Ø¨Ù†Ø¬Ø§Ø­', 'success')
+    flash('تم تسجيل الخروج بنجاح', 'success')
     return redirect(url_for('auth.login'))
 
 
